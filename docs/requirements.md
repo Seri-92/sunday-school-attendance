@@ -11,7 +11,7 @@
 - フロント / バックエンド: Next.js
 - DB: Neon (PostgreSQL)
 - ORM: Drizzle
-- 認証: Clerk（メール OTP 認証）
+- 認証: Neon Auth（パスワードレス認証）
 - メール送信: アプリ側（Cron + 外部メールサービス想定）
 
 ## 開発・DB運用方針（MVP）
@@ -26,7 +26,7 @@
 
 ### 教師
 
-- Clerk のメール OTP でログイン
+- Neon Auth のメール認証でログイン
 - 担当クラスの出席入力
 - 出席履歴の確認
 
@@ -72,6 +72,7 @@
 ### `teachers`
 
 - `id`
+- `auth_user_id`
 - `email`
 - `role` (`admin` / `teacher`)
 - `active`
@@ -131,8 +132,11 @@
 
 ### 認証
 
-- Clerk のメール OTP でログイン
+- Neon Auth を利用する
+- パスワードは使わない
+- メールのマジックリンク認証を採用する
 - メールアドレスでユーザー識別
+- `teachers.auth_user_id` と認証ユーザーを紐付ける
 - `role` による権限制御
 
 ### 出席管理
@@ -178,7 +182,8 @@
 
 ### セキュリティ
 
-- Clerk による認証
+- Neon Auth による認証
+- パスワードレス認証を採用し、パスワードの管理を不要にする
 - admin 機能は `role` で制御
 
 ### 運用
