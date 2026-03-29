@@ -1,12 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "@/db/schema";
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set.");
-}
+import { getDatabaseUrl } from "@/lib/env";
 
 const globalForDb = globalThis as typeof globalThis & {
   postgresClient?: ReturnType<typeof postgres>;
@@ -14,7 +9,7 @@ const globalForDb = globalThis as typeof globalThis & {
 
 const client =
   globalForDb.postgresClient ??
-  postgres(databaseUrl, {
+  postgres(getDatabaseUrl(), {
     max: 1,
     prepare: false,
   });

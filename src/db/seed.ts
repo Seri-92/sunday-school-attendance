@@ -23,18 +23,21 @@ const schoolYearId = "20260000-0000-4000-8000-000000000001";
 const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000101",
-    email: "admin@example.com",
+    authUserId: null,
+    email: "sh192b@gmail.com",
     role: "admin" as const,
     active: true,
   },
   {
     id: "20260000-0000-4000-8000-000000000102",
+    authUserId: null,
     email: "teacher-kids@example.com",
     role: "teacher" as const,
     active: true,
   },
   {
     id: "20260000-0000-4000-8000-000000000103",
+    authUserId: null,
     email: "teacher-junior@example.com",
     role: "teacher" as const,
     active: true,

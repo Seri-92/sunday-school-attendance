@@ -47,6 +47,7 @@ export const teachers = pgTable(
   "teachers",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    authUserId: varchar("auth_user_id", { length: 255 }),
     email: varchar("email", { length: 255 }).notNull(),
     role: teacherRoleEnum("role").default("teacher").notNull(),
     active: boolean("active").default(true).notNull(),
@@ -57,7 +58,10 @@ export const teachers = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [uniqueIndex("teachers_email_key").on(table.email)],
+  (table) => [
+    uniqueIndex("teachers_auth_user_id_key").on(table.authUserId),
+    uniqueIndex("teachers_email_key").on(table.email),
+  ],
 );
 
 export const schoolYears = pgTable(

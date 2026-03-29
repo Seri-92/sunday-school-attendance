@@ -8,6 +8,13 @@
       "when": 1774697114648,
       "tag": "0000_first_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774699949429,
+      "tag": "0001_bitter_proudstar",
+      "breakpoints": true
     }
   ]
 }
