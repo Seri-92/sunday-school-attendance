@@ -188,9 +188,6 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
                   <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-                    {item.assignmentLabel}
-                  </span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                       item.hasExistingRecord

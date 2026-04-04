@@ -23,7 +23,6 @@ export type AttendanceCounts = {
 };
 
 export type AttendanceEditorItem = {
-  assignmentLabel: string;
   defaultNote: string;
   defaultStatus: AttendanceStatus;
   gradeLabel: string;
@@ -114,7 +113,6 @@ export function buildAttendanceEditorItems(params: {
     const existing = params.selectedDateRecords.get(student.studentId);
 
     return {
-      assignmentLabel: student.assignmentType === "manual" ? "手動登録" : "自動割当",
       defaultNote: existing?.note ?? "",
       defaultStatus: existing?.status ?? "present",
       gradeLabel: gradeLabels[student.currentGradeCode],

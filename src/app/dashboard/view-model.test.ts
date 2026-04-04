@@ -41,7 +41,6 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
 
   assert.deepEqual(items, [
     {
-      assignmentLabel: "手動登録",
       defaultNote: "発熱のため",
       defaultStatus: "absent",
       gradeLabel: "小学3年",
@@ -50,7 +49,6 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
       studentName: "日曜 太郎",
     },
     {
-      assignmentLabel: "自動割当",
       defaultNote: "",
       defaultStatus: "present",
       gradeLabel: "小学1年",
