@@ -15,7 +15,9 @@ config({ path: ".env.local" });
 config();
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set. Add it to .env.local before seeding.");
+  throw new Error(
+    "DATABASE_URL is not set. Add it to .env.local before seeding.",
+  );
 }
 
 const schoolYearId = "20260000-0000-4000-8000-000000000001";
@@ -24,7 +26,7 @@ const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000101",
     authUserId: null,
-    email: "sh192b@gmail.com",
+    email: "test@gmail.com",
     role: "admin" as const,
     active: true,
   },

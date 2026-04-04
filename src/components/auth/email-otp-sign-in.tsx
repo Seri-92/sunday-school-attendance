@@ -46,7 +46,11 @@ function isClerkLikeError(error: unknown): error is ClerkLikeError {
 }
 
 function getErrorMessage(error: unknown) {
-  if (isClerkLikeError(error) && Array.isArray(error.errors) && error.errors.length > 0) {
+  if (
+    isClerkLikeError(error) &&
+    Array.isArray(error.errors) &&
+    error.errors.length > 0
+  ) {
     const [firstError] = error.errors;
 
     return (
@@ -156,7 +160,9 @@ export function EmailOtpSignIn() {
     try {
       if (authMode === "sign-in") {
         if (!isSignInLoaded || !signIn) {
-          throw new Error("認証の初期化が完了していません。少し待ってから再度お試しください。");
+          throw new Error(
+            "認証の初期化が完了していません。少し待ってから再度お試しください。",
+          );
         }
 
         const signInAttempt = await signIn.create({
@@ -185,7 +191,9 @@ export function EmailOtpSignIn() {
         });
       } else {
         if (!isSignUpLoaded || !signUp) {
-          throw new Error("認証の初期化が完了していません。少し待ってから再度お試しください。");
+          throw new Error(
+            "認証の初期化が完了していません。少し待ってから再度お試しください。",
+          );
         }
 
         await signUp.create({
@@ -237,14 +245,19 @@ export function EmailOtpSignIn() {
     try {
       if (requestedAuth.mode === "sign-up") {
         if (!isSignUpLoaded || !signUp) {
-          throw new Error("認証の初期化が完了していません。少し待ってから再度お試しください。");
+          throw new Error(
+            "認証の初期化が完了していません。少し待ってから再度お試しください。",
+          );
         }
 
         const signUpAttempt = await signUp.attemptEmailAddressVerification({
           code: code.trim(),
         });
 
-        if (signUpAttempt.status !== "complete" || !signUpAttempt.createdSessionId) {
+        if (
+          signUpAttempt.status !== "complete" ||
+          !signUpAttempt.createdSessionId
+        ) {
           if (isSignUpAttemptLike(signUpAttempt)) {
             throw new Error(getSignUpStatusMessage(signUpAttempt));
           }
@@ -260,7 +273,9 @@ export function EmailOtpSignIn() {
         });
       } else {
         if (!isSignInLoaded || !signIn) {
-          throw new Error("認証の初期化が完了していません。少し待ってから再度お試しください。");
+          throw new Error(
+            "認証の初期化が完了していません。少し待ってから再度お試しください。",
+          );
         }
 
         const signInAttempt = await signIn.attemptFirstFactor({
@@ -268,8 +283,13 @@ export function EmailOtpSignIn() {
           code: code.trim(),
         });
 
-        if (signInAttempt.status !== "complete" || !signInAttempt.createdSessionId) {
-          throw new Error("認証コードを確認できませんでした。もう一度コードを送信してください。");
+        if (
+          signInAttempt.status !== "complete" ||
+          !signInAttempt.createdSessionId
+        ) {
+          throw new Error(
+            "認証コードを確認できませんでした。もう一度コードを送信してください。",
+          );
         }
 
         await setActive({
@@ -341,7 +361,10 @@ export function EmailOtpSignIn() {
         <>
           <form className="mt-6 space-y-4" onSubmit={handleSendCode}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-800" htmlFor="email">
+              <label
+                className="text-sm font-medium text-zinc-800"
+                htmlFor="email"
+              >
                 メールアドレス
               </label>
               <input
@@ -353,7 +376,7 @@ export function EmailOtpSignIn() {
                 value={signInEmail}
                 onChange={(event) => setSignInEmail(event.target.value)}
                 className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
-                placeholder="sh192b@gmail.com"
+                placeholder="test@gmail.com"
               />
             </div>
 
@@ -369,7 +392,10 @@ export function EmailOtpSignIn() {
           {requestedAuth?.mode === "sign-in" ? (
             <form className="mt-6 space-y-4" onSubmit={handleVerifyCode}>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-800" htmlFor="otp">
+                <label
+                  className="text-sm font-medium text-zinc-800"
+                  htmlFor="otp"
+                >
                   認証コード
                 </label>
                 <input
@@ -382,7 +408,9 @@ export function EmailOtpSignIn() {
                   maxLength={6}
                   required
                   value={code}
-                  onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, ""))
+                  }
                   className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-base tracking-[0.35em] text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
                   placeholder="123456"
                 />
@@ -405,7 +433,10 @@ export function EmailOtpSignIn() {
         <>
           <form className="mt-6 space-y-4" onSubmit={handleSignUp}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-800" htmlFor="sign-up-email">
+              <label
+                className="text-sm font-medium text-zinc-800"
+                htmlFor="sign-up-email"
+              >
                 メールアドレス
               </label>
               <input
@@ -440,7 +471,10 @@ export function EmailOtpSignIn() {
           {requestedAuth?.mode === "sign-up" ? (
             <form className="mt-6 space-y-4" onSubmit={handleVerifyCode}>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-800" htmlFor="sign-up-otp">
+                <label
+                  className="text-sm font-medium text-zinc-800"
+                  htmlFor="sign-up-otp"
+                >
                   認証コード
                 </label>
                 <input
@@ -453,7 +487,9 @@ export function EmailOtpSignIn() {
                   maxLength={6}
                   required
                   value={code}
-                  onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, ""))
+                  }
                   className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-base tracking-[0.35em] text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
                   placeholder="123456"
                 />
