@@ -20,12 +20,17 @@ import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 
 function buildDashboardUrl(params: {
+  tab?: string;
   classId?: string;
   date?: string;
   notice?: string;
   error?: string;
 }) {
   const searchParams = new URLSearchParams();
+
+  if (params.tab) {
+    searchParams.set("tab", params.tab);
+  }
 
   if (params.classId) {
     searchParams.set("classId", params.classId);
@@ -69,6 +74,7 @@ async function requireLinkedTeacherForAction() {
 export async function createStudentAction(formData: FormData) {
   const teacher = await requireLinkedTeacherForAction();
   const activeSchoolYear = await getActiveSchoolYear();
+  const tab = String(formData.get("tab") ?? "students");
   const classId = String(formData.get("classId") ?? "");
   const date = String(formData.get("date") ?? "");
   const studentName = String(formData.get("studentName") ?? "").trim();
@@ -81,6 +87,7 @@ export async function createStudentAction(formData: FormData) {
   if (!studentName) {
     redirect(
       buildDashboardUrl({
+        tab,
         classId,
         date,
         error: "生徒名を入力してください。",
@@ -91,6 +98,7 @@ export async function createStudentAction(formData: FormData) {
   if (!isGradeCode(gradeCode)) {
     redirect(
       buildDashboardUrl({
+        tab,
         classId,
         date,
         error: "学年の指定が不正です。",
@@ -129,6 +137,7 @@ export async function createStudentAction(formData: FormData) {
   revalidatePath("/dashboard");
   redirect(
     buildDashboardUrl({
+      tab: "students",
       classId: classRecord.id,
       date,
       notice: `${studentName} を ${classRecord.name} に登録しました。`,
@@ -139,6 +148,7 @@ export async function createStudentAction(formData: FormData) {
 export async function saveAttendanceAction(formData: FormData) {
   const teacher = await requireLinkedTeacherForAction();
   const activeSchoolYear = await getActiveSchoolYear();
+  const tab = String(formData.get("tab") ?? "week");
   const classId = String(formData.get("classId") ?? "");
   const date = String(formData.get("date") ?? "");
 
@@ -151,6 +161,7 @@ export async function saveAttendanceAction(formData: FormData) {
   if (!isAttendanceDateInScope(date, validAttendanceDates)) {
     redirect(
       buildDashboardUrl({
+        tab,
         classId,
         error: `${activeSchoolYear.label} の日曜を選択してください。`,
       }),
@@ -172,6 +183,7 @@ export async function saveAttendanceAction(formData: FormData) {
   if (classStudents.length === 0) {
     redirect(
       buildDashboardUrl({
+        tab,
         classId: classRecord.id,
         date,
         error: "出席を登録する前に生徒を追加してください。",
@@ -236,6 +248,7 @@ export async function saveAttendanceAction(formData: FormData) {
   revalidatePath("/dashboard");
   redirect(
     buildDashboardUrl({
+      tab,
       classId: classRecord.id,
       date,
       notice: `${classRecord.name} の ${formatAttendanceDateLabel(date)} の出席を保存しました。`,
