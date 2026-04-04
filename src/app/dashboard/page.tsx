@@ -528,10 +528,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         >
                           <p className="font-medium text-zinc-950">{student.studentName}</p>
                           <p className="mt-1 text-sm text-zinc-600">
-                            {gradeLabels[student.currentGradeCode]}
-                          </p>
-                          <p className="mt-2 text-xs text-zinc-500">
-                            {student.assignmentType === "manual" ? "手動登録" : "自動割当"}
+                            {gradeLabels[student.gradeCode]}
                           </p>
                         </article>
                       ))}

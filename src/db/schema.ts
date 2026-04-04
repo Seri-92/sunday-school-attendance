@@ -140,6 +140,7 @@ export const studentClassAssignments = pgTable(
     classId: uuid("class_id")
       .notNull()
       .references(() => classes.id, { onDelete: "cascade" }),
+    gradeCode: gradeCodeEnum("grade_code").notNull(),
     assignmentType: assignmentTypeEnum("assignment_type")
       .default("auto")
       .notNull(),

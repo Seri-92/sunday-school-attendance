@@ -123,6 +123,7 @@ const assignmentSeed = [
     studentId: "20260000-0000-4000-8000-000000000301",
     schoolYearId,
     classId: "20260000-0000-4000-8000-000000000201",
+    gradeCode: "kindergarten" as const,
     assignmentType: "auto" as const,
   },
   {
@@ -130,6 +131,7 @@ const assignmentSeed = [
     studentId: "20260000-0000-4000-8000-000000000302",
     schoolYearId,
     classId: "20260000-0000-4000-8000-000000000202",
+    gradeCode: "elementary_1" as const,
     assignmentType: "auto" as const,
   },
   {
@@ -137,6 +139,7 @@ const assignmentSeed = [
     studentId: "20260000-0000-4000-8000-000000000303",
     schoolYearId,
     classId: "20260000-0000-4000-8000-000000000203",
+    gradeCode: "elementary_3" as const,
     assignmentType: "manual" as const,
   },
   {
@@ -144,6 +147,7 @@ const assignmentSeed = [
     studentId: "20260000-0000-4000-8000-000000000304",
     schoolYearId,
     classId: "20260000-0000-4000-8000-000000000204",
+    gradeCode: "elementary_5" as const,
     assignmentType: "auto" as const,
   },
   {
@@ -151,6 +155,7 @@ const assignmentSeed = [
     studentId: "20260000-0000-4000-8000-000000000305",
     schoolYearId,
     classId: "20260000-0000-4000-8000-000000000205",
+    gradeCode: "junior_high_1" as const,
     assignmentType: "auto" as const,
   },
 ];

@@ -130,6 +130,7 @@ export async function createStudentAction(formData: FormData) {
       studentId: student.id,
       schoolYearId: activeSchoolYear.id,
       classId: classRecord.id,
+      gradeCode,
       assignmentType: "manual",
     });
   });

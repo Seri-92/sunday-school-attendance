@@ -125,10 +125,9 @@ export async function getClassStudents(classId: string, schoolYearId: string) {
   return db
     .select({
       assignmentId: studentClassAssignments.id,
-      assignmentType: studentClassAssignments.assignmentType,
+      gradeCode: studentClassAssignments.gradeCode,
       studentId: students.id,
       studentName: students.name,
-      currentGradeCode: students.currentGradeCode,
       active: students.active,
     })
     .from(studentClassAssignments)

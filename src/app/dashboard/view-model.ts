@@ -1,11 +1,10 @@
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
-import type { AttendanceStatus } from "@/db/schema";
+import type { AttendanceStatus, GradeCode } from "@/db/schema";
 
 export type DashboardTab = "week" | "attendance" | "students";
 
 export type AttendanceEditorStudent = {
-  assignmentType: "auto" | "manual";
-  currentGradeCode: keyof typeof gradeLabels;
+  gradeCode: GradeCode;
   studentId: string;
   studentName: string;
 };
@@ -115,7 +114,7 @@ export function buildAttendanceEditorItems(params: {
     return {
       defaultNote: existing?.note ?? "",
       defaultStatus: existing?.status ?? "present",
-      gradeLabel: gradeLabels[student.currentGradeCode],
+      gradeLabel: gradeLabels[student.gradeCode],
       hasExistingRecord: existing !== undefined,
       studentId: student.studentId,
       studentName: student.studentName,

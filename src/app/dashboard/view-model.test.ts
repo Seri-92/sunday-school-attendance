@@ -25,14 +25,12 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
     selectedDateRecords,
     students: [
       {
-        assignmentType: "manual",
-        currentGradeCode: "elementary_3",
+        gradeCode: "elementary_3",
         studentId: "student-1",
         studentName: "日曜 太郎",
       },
       {
-        assignmentType: "auto",
-        currentGradeCode: "elementary_1",
+        gradeCode: "elementary_1",
         studentId: "student-2",
         studentName: "日曜 花子",
       },
@@ -90,14 +88,12 @@ test("buildAttendanceDraftInitialState uses existing values and defaults missing
     ]),
     students: [
       {
-        assignmentType: "manual",
-        currentGradeCode: "elementary_3",
+        gradeCode: "elementary_3",
         studentId: "student-1",
         studentName: "日曜 太郎",
       },
       {
-        assignmentType: "auto",
-        currentGradeCode: "elementary_1",
+        gradeCode: "elementary_1",
         studentId: "student-2",
         studentName: "日曜 花子",
       },
