@@ -24,7 +24,7 @@ export default async function DashboardPage() {
               ログインに成功しました
             </h1>
             <p className="text-sm leading-6 text-zinc-600">
-              Neon Auth のセッションを確認し、教師テーブルとの紐付け状態を表示しています。
+              Clerk のセッションを確認し、教師テーブルとの紐付け状態を表示しています。
             </p>
           </div>
           <SignOutButton />

@@ -11,11 +11,3 @@ function getRequiredEnv(name: string): string {
 export function getDatabaseUrl() {
   return getRequiredEnv("DATABASE_URL");
 }
-
-export function getNeonAuthBaseUrl() {
-  return getRequiredEnv("NEON_AUTH_BASE_URL");
-}
-
-export function getNeonAuthCookieSecret() {
-  return getRequiredEnv("NEON_AUTH_COOKIE_SECRET");
-}

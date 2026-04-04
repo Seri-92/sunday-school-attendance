@@ -16,20 +16,20 @@ export default async function Home() {
       <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-12 px-6 py-16 lg:flex-row lg:items-center lg:px-12">
         <section className="max-w-xl space-y-6">
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-700">
-            Neon Auth
+            Clerk
           </p>
           <h1 className="text-5xl font-semibold tracking-tight text-zinc-950">
             日曜学校の出席管理を、ログインからシンプルに。
           </h1>
           <p className="text-lg leading-8 text-zinc-700">
-            Neon Auth のメール認証コードを使って、教師ごとのアクセスを安全に管理します。メールアドレスだけでサインインでき、初回ログイン時に教師データへ自動で紐付きます。
+            Clerk のメール OTP を使って、教師ごとのアクセスを安全に管理します。メールアドレスだけでサインインでき、初回ログイン時に教師データへ自動で紐付きます。
           </p>
           <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">
               パスワード不要
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">
-              Neon Auth 連携
+              Clerk 連携
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">
               教師情報と自動紐付け
