@@ -376,7 +376,7 @@ export function EmailOtpSignIn() {
                 value={signInEmail}
                 onChange={(event) => setSignInEmail(event.target.value)}
                 className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
-                placeholder="test@gmail.com"
+                placeholder="teacher@example.com"
               />
             </div>
 

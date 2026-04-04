@@ -26,7 +26,7 @@ const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000101",
     authUserId: null,
-    email: "test@gmail.com",
+    email: "teacher@example.com",
     role: "admin" as const,
     active: true,
   },
