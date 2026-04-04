@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { attendanceStatusValues, type AttendanceStatus } from "@/db/schema";
+import { type AttendanceStatus } from "@/db/schema";
 import {
-  attendanceStatusLabels,
   formatAttendanceDateLabel,
   getActiveSchoolYear,
   getClassAttendanceRecords,
@@ -10,12 +9,18 @@ import {
   getDefaultAttendanceDate,
   getSundaysInRange,
   getTeacherClassesForYear,
-  gradeLabels,
-  normalizeAttendanceStatus,
 } from "@/lib/attendance";
+import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import { createStudentAction, saveAttendanceAction } from "./actions";
+import {
+  buildAttendanceEditorItems,
+  buildHistoryByDate,
+  getAttendanceCounts,
+  type AttendanceEditorStudent,
+  type SelectedDateRecord,
+} from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -31,18 +36,7 @@ type DashboardPageProps = {
   }>;
 };
 
-type StudentRecord = Awaited<ReturnType<typeof getClassStudents>>[number];
-
-type SelectedDateRecord = {
-  status: AttendanceStatus;
-  note: string;
-};
-
-type HistorySummary = {
-  present: number;
-  absent: number;
-  enteredCount: number;
-};
+type StudentRecord = AttendanceEditorStudent;
 
 function getSingleValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -163,77 +157,115 @@ function renderAttendanceEditor(params: {
   selectedDateRecords: Map<string, SelectedDateRecord>;
   currentTab: DashboardTab;
   description: string;
+  summaryLabel: string;
 }) {
-  const { selectedClass, students, selectedDate, selectedDateRecords, currentTab, description } = params;
+  const {
+    selectedClass,
+    students,
+    selectedDate,
+    selectedDateRecords,
+    currentTab,
+    description,
+    summaryLabel,
+  } = params;
+  const items = buildAttendanceEditorItems({
+    selectedDateRecords,
+    students,
+  });
 
   return (
     <form action={saveAttendanceAction} className="mt-6">
       <input type="hidden" name="tab" value={currentTab} />
       <input type="hidden" name="classId" value={selectedClass.id} />
       <input type="hidden" name="date" value={selectedDate} />
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-zinc-200 text-zinc-500">
-              <th className="px-3 py-3 font-medium">生徒</th>
-              <th className="px-3 py-3 font-medium">学年</th>
-              <th className="px-3 py-3 font-medium">状態</th>
-              <th className="px-3 py-3 font-medium">メモ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((student) => {
-              const existing = selectedDateRecords.get(student.studentId);
+      <div className="space-y-4 pb-32">
+        {items.map((item) => (
+          <article
+            key={item.studentId}
+            className="rounded-[1.75rem] border border-zinc-200 bg-zinc-50/90 p-5 shadow-sm"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-zinc-950">{item.studentName}</p>
+                <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-600">
+                  {item.assignmentLabel}
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    item.hasExistingRecord
+                      ? "bg-emerald-100 text-emerald-900"
+                      : "bg-zinc-200 text-zinc-700"
+                  }`}
+                >
+                  {item.hasExistingRecord ? "入力済みを再編集" : "今回入力"}
+                </span>
+              </div>
+            </div>
 
-              return (
-                <tr key={student.studentId} className="border-b border-zinc-100 align-top">
-                  <td className="px-3 py-4">
-                    <p className="font-medium text-zinc-950">{student.studentName}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {student.assignmentType === "manual" ? "手動登録" : "自動割当"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-4 text-zinc-700">
-                    {gradeLabels[student.currentGradeCode]}
-                  </td>
-                  <td className="px-3 py-4">
-                    <select
-                      className="w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950"
-                      defaultValue={existing?.status ?? "present"}
-                      name={`status:${student.studentId}`}
-                    >
-                      {attendanceStatusValues.map((status) => (
-                        <option key={status} value={status}>
-                          {attendanceStatusLabels[status]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-3 py-4">
-                    <input
-                      className="w-full rounded-2xl border border-zinc-300 bg-white px-3 py-2 text-zinc-950"
-                      defaultValue={existing?.note ?? ""}
-                      name={`note:${student.studentId}`}
-                      placeholder="任意メモ"
-                      type="text"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+            <fieldset className="mt-5">
+              <legend className="text-sm font-medium text-zinc-700">出席状態</legend>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {(["present", "absent"] as const).map((status) => {
+                  const inputId = `${currentTab}-${selectedDate}-${item.studentId}-${status}`;
+                  const isPresent = status === "present";
+
+                  return (
+                    <div key={status}>
+                      <input
+                        className="peer sr-only"
+                        defaultChecked={item.defaultStatus === status}
+                        id={inputId}
+                        name={`status:${item.studentId}`}
+                        type="radio"
+                        value={status}
+                      />
+                      <label
+                        className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-4 text-base font-semibold transition ${
+                          isPresent
+                            ? "border-emerald-200 bg-white text-emerald-900 peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white"
+                            : "border-rose-200 bg-white text-rose-900 peer-checked:border-rose-600 peer-checked:bg-rose-600 peer-checked:text-white"
+                        }`}
+                        htmlFor={inputId}
+                      >
+                        {status === "present" ? "出席" : "欠席"}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <label className="mt-5 block space-y-2 text-sm text-zinc-700">
+              <span className="font-medium">メモ</span>
+              <input
+                className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+                defaultValue={item.defaultNote}
+                name={`note:${item.studentId}`}
+                placeholder="任意メモ"
+                type="text"
+              />
+            </label>
+          </article>
+        ))}
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-zinc-600">{description}</p>
-        <button
-          className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300"
-          disabled={students.length === 0}
-          type="submit"
-        >
-          出席を保存する
-        </button>
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-950">{summaryLabel}</p>
+            <p className="text-xs text-zinc-600">{description}</p>
+          </div>
+          <button
+            className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300"
+            disabled={students.length === 0}
+            type="submit"
+          >
+            出席を保存する
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -360,42 +392,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ]),
   );
 
-  const historyByDate = new Map<string, HistorySummary>();
-
-  for (const sunday of sundays) {
-    historyByDate.set(sunday, {
-      present: 0,
-      absent: 0,
-      enteredCount: 0,
-    });
-  }
-
-  for (const record of records) {
-    const summary = historyByDate.get(record.attendanceDate);
-
-    if (!summary) {
-      continue;
-    }
-
-    const normalizedStatus = normalizeAttendanceStatus(record.status);
-
-    if (normalizedStatus === "present") {
-      summary.present += 1;
-    } else if (normalizedStatus === "absent") {
-      summary.absent += 1;
-    }
-
-    summary.enteredCount += 1;
-  }
-
-  const enteredCount = selectedDateRecords.size;
-  const presentCount = [...selectedDateRecords.values()].filter(
-    (record) => record.status === "present",
-  ).length;
-  const absentCount = [...selectedDateRecords.values()].filter(
-    (record) => record.status === "absent",
-  ).length;
-  const unenteredCount = Math.max(students.length - enteredCount, 0);
+  const historyByDate = buildHistoryByDate({
+    records,
+    sundays,
+  });
+  const { absentCount, enteredCount, presentCount, unenteredCount } = getAttendanceCounts({
+    selectedDateRecords: selectedDateRecords.values(),
+    studentCount: students.length,
+  });
 
   const tabs: DashboardTab[] = ["week", "attendance", "students"];
 
@@ -557,6 +561,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     selectedDateRecords,
                     currentTab,
                     description: `${formatAttendanceDateLabel(selectedDate)} の出席を保存します。`,
+                    summaryLabel: `${enteredCount}/${students.length} 名入力済み`,
                   })}
                 </article>
               </>
@@ -608,6 +613,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     selectedDateRecords,
                     currentTab,
                     description: `${formatAttendanceDateLabel(selectedDate)} の内容を再保存します。`,
+                    summaryLabel: `${enteredCount}/${students.length} 名入力済み`,
                   })}
                 </article>
 
@@ -626,58 +632,54 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </div>
                   </div>
 
-                  <div className="mt-5 overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-zinc-200 text-zinc-500">
-                          <th className="px-3 py-3 font-medium">日付</th>
-                          <th className="px-3 py-3 font-medium">入力状況</th>
-                          <th className="px-3 py-3 font-medium">出席</th>
-                          <th className="px-3 py-3 font-medium">欠席</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sundays.map((date) => {
-                          const summary = historyByDate.get(date)!;
-                          const isSelected = date === selectedDate;
-                          const state =
-                            summary.enteredCount > 0 ? ("present" as const) : ("unentered" as const);
+                  <div className="mt-5 space-y-3">
+                    {sundays.map((date) => {
+                      const summary = historyByDate.get(date)!;
+                      const isSelected = date === selectedDate;
+                      const state =
+                        summary.enteredCount > 0 ? ("present" as const) : ("unentered" as const);
 
-                          return (
-                            <tr
-                              key={date}
-                              className={`border-b border-zinc-100 ${isSelected ? "bg-emerald-50/70" : ""}`}
-                            >
-                              <td className="px-3 py-4">
-                                <Link
-                                  className="font-medium text-zinc-950 hover:text-emerald-700"
-                                  href={buildDashboardHref({
-                                    tab: "attendance",
-                                    classId: selectedClass.id,
-                                    date,
-                                  })}
-                                >
-                                  {formatAttendanceDateLabel(date)}
-                                </Link>
-                              </td>
-                              <td className="px-3 py-4">
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
-                                    state,
-                                  )}`}
-                                >
-                                  {summary.enteredCount > 0
-                                    ? `${summary.enteredCount}/${students.length} 名入力`
-                                    : "未入力"}
-                                </span>
-                              </td>
-                              <td className="px-3 py-4 text-zinc-700">{summary.present}</td>
-                              <td className="px-3 py-4 text-zinc-700">{summary.absent}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                      return (
+                        <Link
+                          key={date}
+                          className={`block rounded-2xl border p-4 transition ${
+                            isSelected
+                              ? "border-emerald-300 bg-emerald-50"
+                              : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white"
+                          }`}
+                          href={buildDashboardHref({
+                            tab: "attendance",
+                            classId: selectedClass.id,
+                            date,
+                          })}
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-medium text-zinc-950">
+                                {formatAttendanceDateLabel(date)}
+                              </p>
+                              <p className="mt-1 text-sm text-zinc-600">
+                                出席 {summary.present} 名 / 欠席 {summary.absent} 名
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                                  state,
+                                )}`}
+                              >
+                                {summary.enteredCount > 0
+                                  ? `${summary.enteredCount}/${students.length} 名入力`
+                                  : "未入力"}
+                              </span>
+                              {isSelected ? (
+                                <span className="text-xs font-medium text-emerald-800">表示中</span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </article>
               </>
