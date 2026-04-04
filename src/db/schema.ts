@@ -28,7 +28,6 @@ export const assignmentTypeValues = ["auto", "manual"] as const;
 export const attendanceStatusValues = [
   "present",
   "absent",
-  "excused",
 ] as const;
 
 export type TeacherRole = (typeof teacherRoleValues)[number];

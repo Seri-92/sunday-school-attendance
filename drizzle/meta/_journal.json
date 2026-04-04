@@ -15,6 +15,13 @@
       "when": 1774699949429,
       "tag": "0001_bitter_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775260800000,
+      "tag": "0002_remove_excused_attendance_status",
+      "breakpoints": true
     }
   ]
 }

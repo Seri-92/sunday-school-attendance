@@ -32,7 +32,6 @@ export const gradeLabels: Record<GradeCode, string> = {
 export const attendanceStatusLabels: Record<AttendanceStatus, string> = {
   present: "出席",
   absent: "欠席",
-  excused: "公欠",
 };
 
 type TeacherRecord = typeof teachers.$inferSelect;
@@ -59,6 +58,14 @@ export function isGradeCode(value: string): value is GradeCode {
 
 export function isAttendanceStatus(value: string): value is AttendanceStatus {
   return (attendanceStatusValues as readonly string[]).includes(value);
+}
+
+export function normalizeAttendanceStatus(value: string): AttendanceStatus {
+  if (value === "excused") {
+    return "absent";
+  }
+
+  return isAttendanceStatus(value) ? value : "present";
 }
 
 export function getSundaysInRange(startDate: string, endDate: string) {

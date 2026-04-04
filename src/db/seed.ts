@@ -199,7 +199,7 @@ const attendanceRecordSeed = [
     id: "20260000-0000-4000-8000-000000000609",
     attendanceDateId: "20260000-0000-4000-8000-000000000501",
     studentId: "20260000-0000-4000-8000-000000000305",
-    status: "excused",
+    status: "absent",
     note: "部活動の行事",
   },
   {

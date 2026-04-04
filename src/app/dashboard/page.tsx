@@ -11,6 +11,7 @@ import {
   getSundaysInRange,
   getTeacherClassesForYear,
   gradeLabels,
+  normalizeAttendanceStatus,
 } from "@/lib/attendance";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
@@ -37,8 +38,6 @@ function getStatusBadgeClass(status: AttendanceStatus | "unentered") {
       return "border-emerald-200 bg-emerald-50 text-emerald-900";
     case "absent":
       return "border-rose-200 bg-rose-50 text-rose-900";
-    case "excused":
-      return "border-amber-200 bg-amber-50 text-amber-900";
     default:
       return "border-zinc-200 bg-zinc-50 text-zinc-600";
   }
@@ -158,7 +157,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       .map((record) => [
         record.studentId,
         {
-          status: record.status as AttendanceStatus,
+          status: normalizeAttendanceStatus(record.status),
           note: record.note ?? "",
         },
       ]),
@@ -169,7 +168,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     {
       present: number;
       absent: number;
-      excused: number;
       enteredCount: number;
     }
   >();
@@ -178,7 +176,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     historyByDate.set(sunday, {
       present: 0,
       absent: 0,
-      excused: 0,
       enteredCount: 0,
     });
   }
@@ -190,12 +187,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       continue;
     }
 
-    if (record.status === "present") {
+    const normalizedStatus = normalizeAttendanceStatus(record.status);
+
+    if (normalizedStatus === "present") {
       summary.present += 1;
-    } else if (record.status === "absent") {
+    } else if (normalizedStatus === "absent") {
       summary.absent += 1;
-    } else if (record.status === "excused") {
-      summary.excused += 1;
     }
 
     summary.enteredCount += 1;
@@ -472,7 +469,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           <th className="px-3 py-3 font-medium">入力状況</th>
                           <th className="px-3 py-3 font-medium">出席</th>
                           <th className="px-3 py-3 font-medium">欠席</th>
-                          <th className="px-3 py-3 font-medium">公欠</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -508,7 +504,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                               </td>
                               <td className="px-3 py-4 text-zinc-700">{summary.present}</td>
                               <td className="px-3 py-4 text-zinc-700">{summary.absent}</td>
-                              <td className="px-3 py-4 text-zinc-700">{summary.excused}</td>
                             </tr>
                           );
                         })}
