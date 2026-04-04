@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildAttendanceDraftInitialState,
+  buildDashboardHref,
   buildAttendanceEditorItems,
   buildHistoryByDate,
   getAttendanceCounts,
+  hasAttendanceDraftChanges,
   type SelectedDateRecord,
 } from "./view-model";
 
@@ -76,6 +79,92 @@ test("getAttendanceCounts returns counts without making unentered negative", () 
   });
 });
 
+test("buildAttendanceDraftInitialState uses existing values and defaults missing records", () => {
+  const items = buildAttendanceEditorItems({
+    selectedDateRecords: new Map<string, SelectedDateRecord>([
+      [
+        "student-1",
+        {
+          note: "発熱のため",
+          status: "absent",
+        },
+      ],
+    ]),
+    students: [
+      {
+        assignmentType: "manual",
+        currentGradeCode: "elementary_3",
+        studentId: "student-1",
+        studentName: "日曜 太郎",
+      },
+      {
+        assignmentType: "auto",
+        currentGradeCode: "elementary_1",
+        studentId: "student-2",
+        studentName: "日曜 花子",
+      },
+    ],
+  });
+
+  assert.deepEqual(buildAttendanceDraftInitialState(items), {
+    "student-1": {
+      note: "発熱のため",
+      status: "absent",
+    },
+    "student-2": {
+      note: "",
+      status: "present",
+    },
+  });
+});
+
+test("hasAttendanceDraftChanges ignores note whitespace but detects status changes", () => {
+  const initialState = {
+    "student-1": {
+      note: "連絡あり",
+      status: "present" as const,
+    },
+    "student-2": {
+      note: "",
+      status: "absent" as const,
+    },
+  };
+
+  assert.equal(
+    hasAttendanceDraftChanges({
+      draftState: {
+        "student-1": {
+          note: "  連絡あり  ",
+          status: "present",
+        },
+        "student-2": {
+          note: "",
+          status: "absent",
+        },
+      },
+      initialState,
+    }),
+    false,
+  );
+
+  assert.equal(
+    hasAttendanceDraftChanges({
+      draftState: {
+        "student-1": {
+          note: "連絡あり",
+          status: "absent",
+        },
+        "student-2": {
+          note: "",
+          status: "absent",
+        },
+      },
+      initialState,
+    }),
+    true,
+  );
+});
+
 test("buildHistoryByDate aggregates only in-range dates and normalizes legacy absence values", () => {
   const history = buildHistoryByDate({
     records: [
@@ -118,4 +207,22 @@ test("buildHistoryByDate aggregates only in-range dates and normalizes legacy ab
     present: 0,
   });
   assert.equal(history.has("2026-05-03"), false);
+});
+
+test("buildDashboardHref keeps only provided dashboard params", () => {
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      date: "2026-04-05",
+      tab: "attendance",
+    }),
+    "/dashboard?tab=attendance&classId=class-1&date=2026-04-05",
+  );
+
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+    }),
+    "/dashboard?classId=class-1",
+  );
 });

@@ -1,6 +1,8 @@
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
 import type { AttendanceStatus } from "@/db/schema";
 
+export type DashboardTab = "week" | "attendance" | "students";
+
 export type AttendanceEditorStudent = {
   assignmentType: "auto" | "manual";
   currentGradeCode: keyof typeof gradeLabels;
@@ -42,6 +44,41 @@ export type HistorySummary = {
   enteredCount: number;
   present: number;
 };
+
+export type AttendanceDraftValue = {
+  note: string;
+  status: AttendanceStatus;
+};
+
+export type AttendanceDraftState = Record<string, AttendanceDraftValue>;
+
+function normalizeDraftNote(note: string) {
+  return note.trim();
+}
+
+export function buildDashboardHref(params: {
+  tab?: DashboardTab;
+  classId?: string;
+  date?: string;
+}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.tab) {
+    searchParams.set("tab", params.tab);
+  }
+
+  if (params.classId) {
+    searchParams.set("classId", params.classId);
+  }
+
+  if (params.date) {
+    searchParams.set("date", params.date);
+  }
+
+  const query = searchParams.toString();
+
+  return query ? `/dashboard?${query}` : "/dashboard";
+}
 
 export function getAttendanceCounts(params: {
   selectedDateRecords: Iterable<SelectedDateRecord>;
@@ -86,6 +123,47 @@ export function buildAttendanceEditorItems(params: {
       studentName: student.studentName,
     };
   });
+}
+
+export function buildAttendanceDraftInitialState(items: AttendanceEditorItem[]): AttendanceDraftState {
+  return Object.fromEntries(
+    items.map((item) => [
+      item.studentId,
+      {
+        note: item.defaultNote,
+        status: item.defaultStatus,
+      },
+    ]),
+  );
+}
+
+export function hasAttendanceDraftChanges(params: {
+  draftState: AttendanceDraftState;
+  initialState: AttendanceDraftState;
+}) {
+  const studentIds = new Set([
+    ...Object.keys(params.initialState),
+    ...Object.keys(params.draftState),
+  ]);
+
+  for (const studentId of studentIds) {
+    const initialValue = params.initialState[studentId];
+    const draftValue = params.draftState[studentId];
+
+    if (!initialValue || !draftValue) {
+      return true;
+    }
+
+    if (initialValue.status !== draftValue.status) {
+      return true;
+    }
+
+    if (normalizeDraftNote(initialValue.note) !== normalizeDraftNote(draftValue.note)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function buildHistoryByDate(params: {

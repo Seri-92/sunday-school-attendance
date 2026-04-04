@@ -15,16 +15,20 @@ import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import { createStudentAction, saveAttendanceAction } from "./actions";
 import {
+  AttendanceDateSwitcher,
+  AttendanceEditor,
+  DashboardClassSwitcher,
+} from "./dashboard-client";
+import {
   buildAttendanceEditorItems,
+  buildDashboardHref,
   buildHistoryByDate,
   getAttendanceCounts,
-  type AttendanceEditorStudent,
+  type DashboardTab,
   type SelectedDateRecord,
 } from "./view-model";
 
 export const dynamic = "force-dynamic";
-
-type DashboardTab = "week" | "attendance" | "students";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -36,8 +40,6 @@ type DashboardPageProps = {
   }>;
 };
 
-type StudentRecord = AttendanceEditorStudent;
-
 function getSingleValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -48,30 +50,6 @@ function getDashboardTab(value: string | undefined): DashboardTab {
   }
 
   return "week";
-}
-
-function buildDashboardHref(params: {
-  tab?: DashboardTab;
-  classId?: string;
-  date?: string;
-}) {
-  const searchParams = new URLSearchParams();
-
-  if (params.tab) {
-    searchParams.set("tab", params.tab);
-  }
-
-  if (params.classId) {
-    searchParams.set("classId", params.classId);
-  }
-
-  if (params.date) {
-    searchParams.set("date", params.date);
-  }
-
-  const query = searchParams.toString();
-
-  return query ? `/dashboard?${query}` : "/dashboard";
 }
 
 function getStatusBadgeClass(status: AttendanceStatus | "unentered") {
@@ -117,157 +95,23 @@ function renderClassSwitcher(params: {
       </div>
 
       {availableClasses.length > 0 ? (
-        <form action="/dashboard" className="mt-5 space-y-4">
-          <input type="hidden" name="tab" value={currentTab} />
-          <input type="hidden" name="date" value={selectedDate} />
-          <label className="block space-y-2 text-sm text-zinc-700">
-            <span className="font-medium">対象クラス</span>
-            <select
-              className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-              defaultValue={selectedClassId}
-              name="classId"
-            >
-              {availableClasses.map((classItem) => (
-                <option key={classItem.id} value={classItem.id}>
-                  {classItem.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="w-full rounded-full bg-zinc-950 px-4 py-3 text-sm font-semibold text-white"
-            type="submit"
-          >
-            表示を切り替える
-          </button>
-        </form>
+        <div className="mt-5">
+          <DashboardClassSwitcher
+            currentTab={currentTab}
+            options={availableClasses.map((classItem) => ({
+              label: classItem.name,
+              value: classItem.id,
+            }))}
+            selectedClassId={selectedClassId}
+            selectedDate={selectedDate}
+          />
+        </div>
       ) : (
         <p className="mt-5 text-sm leading-6 text-zinc-600">
           現在の年度で担当クラスが割り当てられていません。
         </p>
       )}
     </article>
-  );
-}
-
-function renderAttendanceEditor(params: {
-  selectedClass: Awaited<ReturnType<typeof getTeacherClassesForYear>>[number];
-  students: StudentRecord[];
-  selectedDate: string;
-  selectedDateRecords: Map<string, SelectedDateRecord>;
-  currentTab: DashboardTab;
-  description: string;
-  summaryLabel: string;
-}) {
-  const {
-    selectedClass,
-    students,
-    selectedDate,
-    selectedDateRecords,
-    currentTab,
-    description,
-    summaryLabel,
-  } = params;
-  const items = buildAttendanceEditorItems({
-    selectedDateRecords,
-    students,
-  });
-
-  return (
-    <form action={saveAttendanceAction} className="mt-6">
-      <input type="hidden" name="tab" value={currentTab} />
-      <input type="hidden" name="classId" value={selectedClass.id} />
-      <input type="hidden" name="date" value={selectedDate} />
-      <div className="space-y-4 pb-32">
-        {items.map((item) => (
-          <article
-            key={item.studentId}
-            className="rounded-[1.75rem] border border-zinc-200 bg-zinc-50/90 p-5 shadow-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-semibold text-zinc-950">{item.studentName}</p>
-                <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-                  {item.assignmentLabel}
-                </span>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    item.hasExistingRecord
-                      ? "bg-emerald-100 text-emerald-900"
-                      : "bg-zinc-200 text-zinc-700"
-                  }`}
-                >
-                  {item.hasExistingRecord ? "入力済みを再編集" : "今回入力"}
-                </span>
-              </div>
-            </div>
-
-            <fieldset className="mt-5">
-              <legend className="text-sm font-medium text-zinc-700">出席状態</legend>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {(["present", "absent"] as const).map((status) => {
-                  const inputId = `${currentTab}-${selectedDate}-${item.studentId}-${status}`;
-                  const isPresent = status === "present";
-
-                  return (
-                    <div key={status}>
-                      <input
-                        className="peer sr-only"
-                        defaultChecked={item.defaultStatus === status}
-                        id={inputId}
-                        name={`status:${item.studentId}`}
-                        type="radio"
-                        value={status}
-                      />
-                      <label
-                        className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-4 text-base font-semibold transition ${
-                          isPresent
-                            ? "border-emerald-200 bg-white text-emerald-900 peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white"
-                            : "border-rose-200 bg-white text-rose-900 peer-checked:border-rose-600 peer-checked:bg-rose-600 peer-checked:text-white"
-                        }`}
-                        htmlFor={inputId}
-                      >
-                        {status === "present" ? "出席" : "欠席"}
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <label className="mt-5 block space-y-2 text-sm text-zinc-700">
-              <span className="font-medium">メモ</span>
-              <input
-                className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-                defaultValue={item.defaultNote}
-                name={`note:${item.studentId}`}
-                placeholder="任意メモ"
-                type="text"
-              />
-            </label>
-          </article>
-        ))}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-950">{summaryLabel}</p>
-            <p className="text-xs text-zinc-600">{description}</p>
-          </div>
-          <button
-            className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white disabled:bg-zinc-300"
-            disabled={students.length === 0}
-            type="submit"
-          >
-            出席を保存する
-          </button>
-        </div>
-      </div>
-    </form>
   );
 }
 
@@ -400,6 +244,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     selectedDateRecords: selectedDateRecords.values(),
     studentCount: students.length,
   });
+  const attendanceEditorItems = buildAttendanceEditorItems({
+    selectedDateRecords,
+    students,
+  });
+  const attendanceEditorKey = JSON.stringify({
+    currentTab,
+    items: attendanceEditorItems,
+    selectedClassId: selectedClass?.id ?? "",
+    selectedDate,
+  });
+  const attendanceDateOptions = sundays.map((date) => ({
+    label: formatAttendanceDateLabel(date),
+    value: date,
+  }));
 
   const tabs: DashboardTab[] = ["week", "attendance", "students"];
 
@@ -554,15 +412,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </div>
                   </div>
 
-                  {renderAttendanceEditor({
-                    selectedClass,
-                    students,
-                    selectedDate,
-                    selectedDateRecords,
-                    currentTab,
-                    description: `${formatAttendanceDateLabel(selectedDate)} の出席を保存します。`,
-                    summaryLabel: `${enteredCount}/${students.length} 名入力済み`,
-                  })}
+                  <AttendanceEditor
+                    key={attendanceEditorKey}
+                    classId={selectedClass.id}
+                    currentTab={currentTab}
+                    description={`${formatAttendanceDateLabel(selectedDate)} の出席を保存します。`}
+                    items={attendanceEditorItems}
+                    saveAttendanceAction={saveAttendanceAction}
+                    selectedDate={selectedDate}
+                    summaryLabel={`${enteredCount}/${students.length} 名入力済み`}
+                  />
                 </article>
               </>
             ) : null}
@@ -583,38 +442,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       </p>
                     </div>
 
-                    <form action="/dashboard" className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                      <input type="hidden" name="tab" value="attendance" />
-                      <input type="hidden" name="classId" value={selectedClass.id} />
-                      <select
-                        className="rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-950"
-                        defaultValue={selectedDate}
-                        name="date"
-                      >
-                        {sundays.map((date) => (
-                          <option key={date} value={date}>
-                            {formatAttendanceDateLabel(date)}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        className="rounded-full bg-zinc-950 px-5 py-3 text-sm font-semibold text-white"
-                        type="submit"
-                      >
-                        週を表示
-                      </button>
-                    </form>
+                    <div className="w-full max-w-sm">
+                      <AttendanceDateSwitcher
+                        options={attendanceDateOptions}
+                        selectedClassId={selectedClass.id}
+                        selectedDate={selectedDate}
+                      />
+                    </div>
                   </div>
 
-                  {renderAttendanceEditor({
-                    selectedClass,
-                    students,
-                    selectedDate,
-                    selectedDateRecords,
-                    currentTab,
-                    description: `${formatAttendanceDateLabel(selectedDate)} の内容を再保存します。`,
-                    summaryLabel: `${enteredCount}/${students.length} 名入力済み`,
-                  })}
+                  <AttendanceEditor
+                    key={attendanceEditorKey}
+                    classId={selectedClass.id}
+                    currentTab={currentTab}
+                    description={`${formatAttendanceDateLabel(selectedDate)} の内容を再保存します。`}
+                    items={attendanceEditorItems}
+                    saveAttendanceAction={saveAttendanceAction}
+                    selectedDate={selectedDate}
+                    summaryLabel={`${enteredCount}/${students.length} 名入力済み`}
+                  />
                 </article>
 
                 <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
