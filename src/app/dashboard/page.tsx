@@ -273,16 +273,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
                 {activeSchoolYear.label} の出席管理
               </h1>
-              <p className="text-sm leading-6 text-zinc-600">
-                今週の入力を優先しつつ、確認用の出席操作と生徒管理を分離しました。
-              </p>
             </div>
             <div className="flex flex-col items-start gap-3 sm:items-end">
               <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
                 <p className="font-semibold">{teacher.email}</p>
-                <p>
-                  {teacher.role === "admin" ? "管理者" : "教師"} / 担当 {availableClasses.length} クラス
-                </p>
+                <p>{teacher.role === "admin" ? "管理者" : "教師"}</p>
               </div>
               <SignOutButton />
             </div>
@@ -334,30 +329,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               selectedDate,
               currentTab,
             })}
-
-            {selectedClass ? (
-              <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
-                <h2 className="text-lg font-semibold text-zinc-950">{selectedClass.name}</h2>
-                <dl className="mt-5 space-y-3 text-sm">
-                  <div className="rounded-2xl border border-zinc-200 p-4">
-                    <dt className="text-zinc-500">対象日</dt>
-                    <dd className="mt-1 font-medium text-zinc-950">
-                      {formatAttendanceDateLabel(selectedDate)}
-                    </dd>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-200 p-4">
-                    <dt className="text-zinc-500">登録生徒</dt>
-                    <dd className="mt-1 font-medium text-zinc-950">{students.length} 名</dd>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-200 p-4">
-                    <dt className="text-zinc-500">入力済み</dt>
-                    <dd className="mt-1 font-medium text-zinc-950">
-                      {enteredCount} / {students.length} 名
-                    </dd>
-                  </div>
-                </dl>
-              </article>
-            ) : null}
           </aside>
 
           <div className="space-y-6">
@@ -381,9 +352,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
                         {formatAttendanceDateLabel(selectedDate)} を含む今週の入力
                       </h2>
-                      <p className="mt-2 text-sm text-zinc-600">
-                        今週の入力に集中できるよう、履歴確認と生徒管理は別タブへ分離しています。
-                      </p>
                     </div>
                     <Link
                       className="inline-flex rounded-full bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-200"
