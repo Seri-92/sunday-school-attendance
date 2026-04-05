@@ -29,6 +29,20 @@
       "when": 1775319565209,
       "tag": "0003_equal_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775367863974,
+      "tag": "0004_special_thunderball",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775368356287,
+      "tag": "0005_outgoing_black_bird",
+      "breakpoints": true
     }
   ]
 }

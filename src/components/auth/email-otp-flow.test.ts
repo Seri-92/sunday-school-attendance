@@ -3,7 +3,6 @@ import test from "node:test";
 import {
   createSingleFlight,
   requestSignInEmailCode,
-  requestSignUpEmailCode,
 } from "./email-otp-flow";
 
 test("requestSignInEmailCode creates sign-in by identifier then prepares the email factor", async () => {
@@ -40,28 +39,25 @@ test("requestSignInEmailCode creates sign-in by identifier then prepares the ema
   ]);
 });
 
-test("requestSignUpEmailCode creates sign-up then prepares email verification once", async () => {
-  const calls: string[] = [];
-  const signUp = {
-    async create(params: { emailAddress: string }) {
-      calls.push(`create:${JSON.stringify(params)}`);
-    },
-    async prepareEmailAddressVerification(params: {
-      strategy: "email_code";
-    }) {
-      calls.push(`prepare:${JSON.stringify(params)}`);
+test("requestSignInEmailCode rejects emails without an email code factor", async () => {
+  const signIn = {
+    async create() {
+      return {
+        supportedFirstFactors: [],
+        async prepareFirstFactor() {
+          throw new Error("should not be called");
+        },
+      };
     },
   };
 
-  await requestSignUpEmailCode({
-    email: "teacher@example.com",
-    signUp,
-  });
-
-  assert.deepEqual(calls, [
-    'create:{"emailAddress":"teacher@example.com"}',
-    'prepare:{"strategy":"email_code"}',
-  ]);
+  await assert.rejects(
+    requestSignInEmailCode({
+      email: "teacher@example.com",
+      signIn,
+    }),
+    /email OTP のサインインを開始できません/,
+  );
 });
 
 test("createSingleFlight ignores concurrent duplicate submissions and unlocks after completion", async () => {

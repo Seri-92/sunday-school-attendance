@@ -73,6 +73,7 @@
 
 - `id`
 - `auth_user_id`
+- `name`
 - `email`
 - `role` (`admin` / `teacher`)
 - `active`
@@ -91,6 +92,11 @@
 - `name`
 - `grade_code`
 - `school_year_id`
+
+### `class_teacher_assignments`
+
+- `id`
+- `class_id`
 - `teacher_id`
 
 ### `students`

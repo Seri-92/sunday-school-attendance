@@ -4,6 +4,7 @@ import postgres from "postgres";
 import {
   attendanceDates,
   attendanceRecords,
+  classTeacherAssignments,
   classes,
   schoolYears,
   studentClassAssignments,
@@ -26,6 +27,7 @@ const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000101",
     authUserId: null,
+    name: "日曜学校 管理者",
     email: "teacher@example.com",
     role: "admin" as const,
     active: true,
@@ -33,6 +35,7 @@ const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000102",
     authUserId: null,
+    name: "山田 先生",
     email: "teacher-kids@example.com",
     role: "teacher" as const,
     active: true,
@@ -40,6 +43,7 @@ const teacherSeed = [
   {
     id: "20260000-0000-4000-8000-000000000103",
     authUserId: null,
+    name: "鈴木 先生",
     email: "teacher-junior@example.com",
     role: "teacher" as const,
     active: true,
@@ -52,34 +56,57 @@ const classSeed = [
     schoolYearId,
     name: "幼稚科",
     gradeCode: "kindergarten" as const,
-    teacherId: "20260000-0000-4000-8000-000000000102",
   },
   {
     id: "20260000-0000-4000-8000-000000000202",
     schoolYearId,
     name: "1・2年",
     gradeCode: "elementary_1" as const,
-    teacherId: "20260000-0000-4000-8000-000000000101",
   },
   {
     id: "20260000-0000-4000-8000-000000000203",
     schoolYearId,
     name: "3・4年",
     gradeCode: "elementary_3" as const,
-    teacherId: "20260000-0000-4000-8000-000000000101",
   },
   {
     id: "20260000-0000-4000-8000-000000000204",
     schoolYearId,
     name: "5・6年",
     gradeCode: "elementary_5" as const,
-    teacherId: "20260000-0000-4000-8000-000000000102",
   },
   {
     id: "20260000-0000-4000-8000-000000000205",
     schoolYearId,
     name: "中学科",
     gradeCode: "junior_high_1" as const,
+  },
+];
+
+const classTeacherAssignmentSeed = [
+  {
+    id: "20260000-0000-4000-8000-000000000211",
+    classId: "20260000-0000-4000-8000-000000000201",
+    teacherId: "20260000-0000-4000-8000-000000000102",
+  },
+  {
+    id: "20260000-0000-4000-8000-000000000212",
+    classId: "20260000-0000-4000-8000-000000000202",
+    teacherId: "20260000-0000-4000-8000-000000000101",
+  },
+  {
+    id: "20260000-0000-4000-8000-000000000213",
+    classId: "20260000-0000-4000-8000-000000000203",
+    teacherId: "20260000-0000-4000-8000-000000000101",
+  },
+  {
+    id: "20260000-0000-4000-8000-000000000214",
+    classId: "20260000-0000-4000-8000-000000000204",
+    teacherId: "20260000-0000-4000-8000-000000000102",
+  },
+  {
+    id: "20260000-0000-4000-8000-000000000215",
+    classId: "20260000-0000-4000-8000-000000000205",
     teacherId: "20260000-0000-4000-8000-000000000103",
   },
 ];
@@ -255,6 +282,7 @@ async function main() {
       await tx.delete(attendanceRecords);
       await tx.delete(attendanceDates);
       await tx.delete(studentClassAssignments);
+      await tx.delete(classTeacherAssignments);
       await tx.delete(classes);
       await tx.delete(students);
       await tx.delete(schoolYears);
@@ -269,6 +297,7 @@ async function main() {
         isActive: true,
       });
       await tx.insert(classes).values(classSeed);
+      await tx.insert(classTeacherAssignments).values(classTeacherAssignmentSeed);
       await tx.insert(students).values(studentSeed);
       await tx.insert(studentClassAssignments).values(assignmentSeed);
       await tx.insert(attendanceDates).values(attendanceDateSeed);

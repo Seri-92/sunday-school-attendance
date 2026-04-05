@@ -15,13 +15,6 @@ type SignInLike = {
   create(params: { identifier: string }): Promise<SignInAttemptLike>;
 };
 
-type SignUpLike = {
-  create(params: { emailAddress: string }): Promise<unknown>;
-  prepareEmailAddressVerification(params: {
-    strategy: "email_code";
-  }): Promise<unknown>;
-};
-
 export async function requestSignInEmailCode({
   email,
   signIn,
@@ -49,21 +42,6 @@ export async function requestSignInEmailCode({
   await signInAttempt.prepareFirstFactor({
     strategy: "email_code",
     emailAddressId,
-  });
-}
-
-export async function requestSignUpEmailCode({
-  email,
-  signUp,
-}: {
-  email: string;
-  signUp: SignUpLike;
-}) {
-  await signUp.create({
-    emailAddress: email,
-  });
-  await signUp.prepareEmailAddressVerification({
-    strategy: "email_code",
   });
 }
 

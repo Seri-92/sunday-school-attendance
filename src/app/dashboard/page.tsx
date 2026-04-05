@@ -155,9 +155,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
             {linkedTeacher.status === "missing" ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                <p className="font-semibold">教師テーブルに一致するメールが見つかりません。</p>
+                <p className="font-semibold">このメールアドレスは教師として招待されていません。</p>
                 <p className="mt-2">
-                  {linkedTeacher.email} を `teachers.email` に登録してください。
+                  管理者に連絡して、{linkedTeacher.email} を教師一覧に登録してもらってください。
                 </p>
               </div>
             ) : null}
@@ -278,7 +278,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
             <div className="flex flex-col items-start gap-3 sm:items-end">
               <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-                <p className="font-semibold">{teacher.email}</p>
+                <p className="font-semibold">{teacher.name}</p>
+                <p className="text-emerald-800/80">{teacher.email}</p>
                 <p>{teacher.role === "admin" ? "管理者" : "教師"}</p>
               </div>
               <SignOutButton />

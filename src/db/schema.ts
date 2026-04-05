@@ -47,6 +47,7 @@ export const teachers = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     authUserId: varchar("auth_user_id", { length: 255 }),
+    name: varchar("name", { length: 128 }).notNull(),
     email: varchar("email", { length: 255 }).notNull(),
     role: teacherRoleEnum("role").default("teacher").notNull(),
     active: boolean("active").default(true).notNull(),
@@ -93,9 +94,6 @@ export const classes = pgTable(
       .references(() => schoolYears.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 64 }).notNull(),
     gradeCode: gradeCodeEnum("grade_code").notNull(),
-    teacherId: uuid("teacher_id").references(() => teachers.id, {
-      onDelete: "set null",
-    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -106,7 +104,30 @@ export const classes = pgTable(
   (table) => [
     uniqueIndex("classes_school_year_name_key").on(table.schoolYearId, table.name),
     index("classes_school_year_idx").on(table.schoolYearId),
-    index("classes_teacher_idx").on(table.teacherId),
+  ],
+);
+
+export const classTeacherAssignments = pgTable(
+  "class_teacher_assignments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    teacherId: uuid("teacher_id")
+      .notNull()
+      .references(() => teachers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("class_teacher_assignments_class_teacher_key").on(
+      table.classId,
+      table.teacherId,
+    ),
+    index("class_teacher_assignments_class_idx").on(table.classId),
+    index("class_teacher_assignments_teacher_idx").on(table.teacherId),
   ],
 );
 

@@ -22,7 +22,7 @@ export default async function Home() {
             日曜学校の出席を、シンプルに管理
           </h1>
           <p className="text-lg leading-8 text-zinc-700">
-            メールアドレスでログインするだけで、担当クラスの出席確認をすぐ始められます。
+            管理者に登録されたメールアドレスでログインするだけで、担当クラスの出席確認をすぐ始められます。
           </p>
           <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">

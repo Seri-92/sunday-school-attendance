@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   attendanceDates,
   attendanceRecords,
+  classTeacherAssignments,
   classes,
   schoolYears,
   studentClassAssignments,
@@ -91,12 +92,35 @@ export async function getActiveSchoolYear() {
 }
 
 export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYearId: string) {
-  const whereClause =
-    teacher.role === "admin"
-      ? eq(classes.schoolYearId, schoolYearId)
-      : and(eq(classes.schoolYearId, schoolYearId), eq(classes.teacherId, teacher.id));
+  if (teacher.role === "admin") {
+    return db
+      .select()
+      .from(classes)
+      .where(eq(classes.schoolYearId, schoolYearId))
+      .orderBy(asc(classes.name));
+  }
 
-  return db.select().from(classes).where(whereClause).orderBy(asc(classes.name));
+  return db
+    .select({
+      id: classes.id,
+      schoolYearId: classes.schoolYearId,
+      name: classes.name,
+      gradeCode: classes.gradeCode,
+      createdAt: classes.createdAt,
+      updatedAt: classes.updatedAt,
+    })
+    .from(classes)
+    .innerJoin(
+      classTeacherAssignments,
+      eq(classTeacherAssignments.classId, classes.id),
+    )
+    .where(
+      and(
+        eq(classes.schoolYearId, schoolYearId),
+        eq(classTeacherAssignments.teacherId, teacher.id),
+      ),
+    )
+    .orderBy(asc(classes.name));
 }
 
 export async function getAuthorizedClass(
@@ -105,18 +129,36 @@ export async function getAuthorizedClass(
   classId: string,
 ) {
   const [classRecord] = await db
-    .select()
+    .select({
+      id: classes.id,
+      schoolYearId: classes.schoolYearId,
+      name: classes.name,
+      gradeCode: classes.gradeCode,
+      createdAt: classes.createdAt,
+      updatedAt: classes.updatedAt,
+    })
     .from(classes)
+    .where(and(eq(classes.id, classId), eq(classes.schoolYearId, schoolYearId)))
+    .limit(1);
+
+  if (!classRecord || teacher.role === "admin") {
+    return classRecord ?? null;
+  }
+
+  const [assignment] = await db
+    .select({ classId: classTeacherAssignments.classId })
+    .from(classTeacherAssignments)
     .where(
-      teacher.role === "admin"
-        ? and(eq(classes.id, classId), eq(classes.schoolYearId, schoolYearId))
-        : and(
-            eq(classes.id, classId),
-            eq(classes.schoolYearId, schoolYearId),
-            eq(classes.teacherId, teacher.id),
-          ),
+      and(
+        eq(classTeacherAssignments.classId, classId),
+        eq(classTeacherAssignments.teacherId, teacher.id),
+      ),
     )
     .limit(1);
+
+  if (!assignment) {
+    return null;
+  }
 
   return classRecord ?? null;
 }
