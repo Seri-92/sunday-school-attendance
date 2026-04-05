@@ -1,11 +1,13 @@
 import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-config({ path: ".env.local", quiet: true });
+config({ path: ".env.production.local", quiet: true });
 config({ quiet: true });
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set. Add it to .env.local or your shell.");
+  throw new Error(
+    "DATABASE_URL is not set. Add it to .env.production.local or your shell.",
+  );
 }
 
 export default defineConfig({

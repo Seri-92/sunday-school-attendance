@@ -10,6 +10,7 @@
     "test": "tsx --test src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "drizzle-kit migrate --config=drizzle-prod.config.ts",
     "db:seed": "tsx --tsconfig tsconfig.json src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
