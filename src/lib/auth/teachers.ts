@@ -28,6 +28,8 @@ type LinkedTeacherResult =
       existingAuthUserId: string;
     };
 
+export type { LinkedTeacherResult };
+
 export async function syncTeacherAuthUser(
   user: AuthUser,
 ): Promise<LinkedTeacherResult> {
