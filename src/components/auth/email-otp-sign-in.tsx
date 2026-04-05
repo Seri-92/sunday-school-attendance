@@ -3,7 +3,12 @@
 import { useClerk } from "@clerk/nextjs";
 import { useSignIn, useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import {
+  createSingleFlight,
+  requestSignInEmailCode,
+  requestSignUpEmailCode,
+} from "./email-otp-flow";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -134,6 +139,8 @@ export function EmailOtpSignIn() {
     email: string;
     mode: AuthMode;
   } | null>(null);
+  const requestCodeOnce = useRef(createSingleFlight()).current;
+  const verifyCodeOnce = useRef(createSingleFlight()).current;
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle",
     message: null,
@@ -154,76 +161,56 @@ export function EmailOtpSignIn() {
   }
 
   async function requestCode(email: string, authMode: AuthMode) {
-    setIsSending(true);
-    resetSubmitState();
+    await requestCodeOnce(async () => {
+      setIsSending(true);
+      resetSubmitState();
 
-    try {
-      if (authMode === "sign-in") {
-        if (!isSignInLoaded || !signIn) {
-          throw new Error(
-            "認証の初期化が完了していません。少し待ってから再度お試しください。",
-          );
+      try {
+        if (authMode === "sign-in") {
+          if (!isSignInLoaded || !signIn) {
+            throw new Error(
+              "認証の初期化が完了していません。少し待ってから再度お試しください。",
+            );
+          }
+
+          await requestSignInEmailCode({
+            email,
+            signIn,
+          });
+        } else {
+          if (!isSignUpLoaded || !signUp) {
+            throw new Error(
+              "認証の初期化が完了していません。少し待ってから再度お試しください。",
+            );
+          }
+
+          await requestSignUpEmailCode({
+            email,
+            signUp,
+          });
         }
 
-        const signInAttempt = await signIn.create({
-          strategy: "email_code",
-          identifier: email,
+        setRequestedAuth({
+          email,
+          mode: authMode,
         });
-        const emailCodeFactor = signInAttempt.supportedFirstFactors?.find(
-          (factor) => factor.strategy === "email_code",
-        );
-        const emailAddressId =
-          emailCodeFactor &&
-          "emailAddressId" in emailCodeFactor &&
-          typeof emailCodeFactor.emailAddressId === "string"
-            ? emailCodeFactor.emailAddressId
-            : null;
-
-        if (!emailAddressId) {
-          throw new Error(
-            "このメールアドレスでは email OTP のサインインを開始できません。Clerk の Email address / Email code 設定を確認してください。",
-          );
-        }
-
-        await signInAttempt.prepareFirstFactor({
-          strategy: "email_code",
-          emailAddressId,
+        setCode("");
+        setSubmitState({
+          status: "success",
+          message:
+            authMode === "sign-up"
+              ? `${email} に新規登録用の認証コードを送信しました。メールに記載された 6 桁コードを入力してください。`
+              : `${email} に認証コードを送信しました。メールに記載された 6 桁コードを入力してください。`,
         });
-      } else {
-        if (!isSignUpLoaded || !signUp) {
-          throw new Error(
-            "認証の初期化が完了していません。少し待ってから再度お試しください。",
-          );
-        }
-
-        await signUp.create({
-          emailAddress: email,
+      } catch (error) {
+        setSubmitState({
+          status: "error",
+          message: getErrorMessage(error),
         });
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
+      } finally {
+        setIsSending(false);
       }
-
-      setRequestedAuth({
-        email,
-        mode: authMode,
-      });
-      setCode("");
-      setSubmitState({
-        status: "success",
-        message:
-          authMode === "sign-up"
-            ? `${email} に新規登録用の認証コードを送信しました。メールに記載された 6 桁コードを入力してください。`
-            : `${email} に認証コードを送信しました。メールに記載された 6 桁コードを入力してください。`,
-      });
-    } catch (error) {
-      setSubmitState({
-        status: "error",
-        message: getErrorMessage(error),
-      });
-    } finally {
-      setIsSending(false);
-    }
+    });
   }
 
   async function handleSendCode(event: React.FormEvent<HTMLFormElement>) {
@@ -239,75 +226,77 @@ export function EmailOtpSignIn() {
       return;
     }
 
-    setIsVerifying(true);
-    resetSubmitState();
+    await verifyCodeOnce(async () => {
+      setIsVerifying(true);
+      resetSubmitState();
 
-    try {
-      if (requestedAuth.mode === "sign-up") {
-        if (!isSignUpLoaded || !signUp) {
-          throw new Error(
-            "認証の初期化が完了していません。少し待ってから再度お試しください。",
-          );
-        }
-
-        const signUpAttempt = await signUp.attemptEmailAddressVerification({
-          code: code.trim(),
-        });
-
-        if (
-          signUpAttempt.status !== "complete" ||
-          !signUpAttempt.createdSessionId
-        ) {
-          if (isSignUpAttemptLike(signUpAttempt)) {
-            throw new Error(getSignUpStatusMessage(signUpAttempt));
+      try {
+        if (requestedAuth.mode === "sign-up") {
+          if (!isSignUpLoaded || !signUp) {
+            throw new Error(
+              "認証の初期化が完了していません。少し待ってから再度お試しください。",
+            );
           }
 
-          throw new Error(
-            "登録を完了できませんでした。Clerk Dashboard の User & authentication 設定を確認してください。",
-          );
+          const signUpAttempt = await signUp.attemptEmailAddressVerification({
+            code: code.trim(),
+          });
+
+          if (
+            signUpAttempt.status !== "complete" ||
+            !signUpAttempt.createdSessionId
+          ) {
+            if (isSignUpAttemptLike(signUpAttempt)) {
+              throw new Error(getSignUpStatusMessage(signUpAttempt));
+            }
+
+            throw new Error(
+              "登録を完了できませんでした。Clerk Dashboard の User & authentication 設定を確認してください。",
+            );
+          }
+
+          await setActive({
+            session: signUpAttempt.createdSessionId,
+            redirectUrl: "/dashboard",
+          });
+        } else {
+          if (!isSignInLoaded || !signIn) {
+            throw new Error(
+              "認証の初期化が完了していません。少し待ってから再度お試しください。",
+            );
+          }
+
+          const signInAttempt = await signIn.attemptFirstFactor({
+            strategy: "email_code",
+            code: code.trim(),
+          });
+
+          if (
+            signInAttempt.status !== "complete" ||
+            !signInAttempt.createdSessionId
+          ) {
+            throw new Error(
+              "認証コードを確認できませんでした。もう一度コードを送信してください。",
+            );
+          }
+
+          await setActive({
+            session: signInAttempt.createdSessionId,
+            redirectUrl: "/dashboard",
+          });
         }
 
-        await setActive({
-          session: signUpAttempt.createdSessionId,
-          redirectUrl: "/dashboard",
+        router.refresh();
+      } catch (error) {
+        setSubmitState({
+          status: "error",
+          message: getErrorMessage(error),
         });
-      } else {
-        if (!isSignInLoaded || !signIn) {
-          throw new Error(
-            "認証の初期化が完了していません。少し待ってから再度お試しください。",
-          );
-        }
-
-        const signInAttempt = await signIn.attemptFirstFactor({
-          strategy: "email_code",
-          code: code.trim(),
-        });
-
-        if (
-          signInAttempt.status !== "complete" ||
-          !signInAttempt.createdSessionId
-        ) {
-          throw new Error(
-            "認証コードを確認できませんでした。もう一度コードを送信してください。",
-          );
-        }
-
-        await setActive({
-          session: signInAttempt.createdSessionId,
-          redirectUrl: "/dashboard",
-        });
+        setCode("");
+      } finally {
+        setIsVerifying(false);
       }
-
-      router.refresh();
-    } catch (error) {
-      setSubmitState({
-        status: "error",
-        message: getErrorMessage(error),
-      });
-      setCode("");
-    } finally {
-      setIsVerifying(false);
-    }
+    });
   }
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
