@@ -88,7 +88,7 @@ function renderClassSwitcher(params: {
         </div>
       ) : (
         <p className="mt-5 text-sm leading-6 text-zinc-600">
-          現在の年度で担当クラスが割り当てられていません。
+          現在の年度に利用可能なクラスがありません。
         </p>
       )}
     </article>
@@ -325,9 +325,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <div className="space-y-6">
             {!selectedClass ? (
               <article className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-sm backdrop-blur">
-                <h2 className="text-xl font-semibold text-zinc-950">担当クラスがありません</h2>
+                <h2 className="text-xl font-semibold text-zinc-950">クラスがありません</h2>
                 <p className="mt-3 text-sm leading-6 text-zinc-600">
-                  管理者が現在の年度にクラスを割り当てると、生徒登録と出席入力を開始できます。
+                  現在の年度にクラスを作成すると、生徒登録と出席入力を開始できます。
                 </p>
               </article>
             ) : null}

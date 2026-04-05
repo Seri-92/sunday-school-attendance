@@ -12,6 +12,7 @@ import {
   students,
   teachers,
 } from "@/db/schema";
+import { shouldFilterClassesByAssignment } from "@/lib/class-access";
 export {
   attendanceStatusLabels,
   gradeLabels,
@@ -92,7 +93,7 @@ export async function getActiveSchoolYear() {
 }
 
 export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYearId: string) {
-  if (teacher.role === "admin") {
+  if (!shouldFilterClassesByAssignment(teacher.role)) {
     return db
       .select()
       .from(classes)
@@ -141,7 +142,7 @@ export async function getAuthorizedClass(
     .where(and(eq(classes.id, classId), eq(classes.schoolYearId, schoolYearId)))
     .limit(1);
 
-  if (!classRecord || teacher.role === "admin") {
+  if (!classRecord || !shouldFilterClassesByAssignment(teacher.role)) {
     return classRecord ?? null;
   }
 
