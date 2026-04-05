@@ -13,6 +13,7 @@ import {
   teachers,
 } from "@/db/schema";
 import { shouldFilterClassesByAssignment } from "@/lib/class-access";
+import { buildStudentName, buildStudentNameKana } from "@/lib/students";
 export {
   attendanceStatusLabels,
   gradeLabels,
@@ -165,12 +166,15 @@ export async function getAuthorizedClass(
 }
 
 export async function getClassStudents(classId: string, schoolYearId: string) {
-  return db
+  const classStudents = await db
     .select({
       assignmentId: studentClassAssignments.id,
       gradeCode: studentClassAssignments.gradeCode,
       studentId: students.id,
-      studentName: students.name,
+      lastName: students.lastName,
+      firstName: students.firstName,
+      lastNameKana: students.lastNameKana,
+      firstNameKana: students.firstNameKana,
       active: students.active,
     })
     .from(studentClassAssignments)
@@ -181,7 +185,21 @@ export async function getClassStudents(classId: string, schoolYearId: string) {
         eq(studentClassAssignments.schoolYearId, schoolYearId),
       ),
     )
-    .orderBy(asc(students.name));
+    .orderBy(
+      asc(students.lastNameKana),
+      asc(students.firstNameKana),
+      asc(students.lastName),
+      asc(students.firstName),
+    );
+
+  return classStudents.map((student) => ({
+    active: student.active,
+    assignmentId: student.assignmentId,
+    gradeCode: student.gradeCode,
+    studentId: student.studentId,
+    studentName: buildStudentName(student),
+    studentNameKana: buildStudentNameKana(student),
+  }));
 }
 
 export async function getClassAttendanceRecords(

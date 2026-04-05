@@ -7,6 +7,7 @@ export type AttendanceEditorStudent = {
   gradeCode: GradeCode;
   studentId: string;
   studentName: string;
+  studentNameKana?: string;
 };
 
 export type SelectedDateRecord = {
@@ -167,7 +168,9 @@ export function buildAttendanceEditorItems(params: {
 
 const gradeOrder = new Map(gradeCodeValues.map((gradeCode, index) => [gradeCode, index]));
 
-export function sortStudentsByGrade<T extends { gradeCode: GradeCode; studentName: string }>(
+export function sortStudentsByGrade<
+  T extends { gradeCode: GradeCode; studentName: string; studentNameKana?: string },
+>(
   students: T[],
 ) {
   return [...students].sort((left, right) => {
@@ -176,6 +179,14 @@ export function sortStudentsByGrade<T extends { gradeCode: GradeCode; studentNam
 
     if (leftOrder !== rightOrder) {
       return leftOrder - rightOrder;
+    }
+
+    const leftKana = left.studentNameKana || left.studentName;
+    const rightKana = right.studentNameKana || right.studentName;
+    const kanaCompare = leftKana.localeCompare(rightKana, "ja");
+
+    if (kanaCompare !== 0) {
+      return kanaCompare;
     }
 
     return left.studentName.localeCompare(right.studentName, "ja");

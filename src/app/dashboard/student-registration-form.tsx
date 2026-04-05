@@ -51,11 +51,41 @@ export function StudentRegistrationForm(props: StudentRegistrationFormProps) {
       <input type="hidden" name="classId" value={props.classId} />
       <input type="hidden" name="date" value={props.selectedDate} />
       <label className="block space-y-2 text-sm text-zinc-700">
-        <span className="font-medium">生徒名</span>
+        <span className="font-medium">姓</span>
         <input
           className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-          name="studentName"
-          placeholder="例: 日曜 太郎"
+          name="lastName"
+          placeholder="例: 日曜"
+          required
+          type="text"
+        />
+      </label>
+      <label className="block space-y-2 text-sm text-zinc-700">
+        <span className="font-medium">名</span>
+        <input
+          className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+          name="firstName"
+          placeholder="例: 太郎"
+          required
+          type="text"
+        />
+      </label>
+      <label className="block space-y-2 text-sm text-zinc-700">
+        <span className="font-medium">せい（ふりがな）</span>
+        <input
+          className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+          name="lastNameKana"
+          placeholder="例: にちよう"
+          required
+          type="text"
+        />
+      </label>
+      <label className="block space-y-2 text-sm text-zinc-700">
+        <span className="font-medium">めい（ふりがな）</span>
+        <input
+          className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+          name="firstNameKana"
+          placeholder="例: たろう"
           required
           type="text"
         />

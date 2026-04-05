@@ -135,7 +135,10 @@ export const students = pgTable(
   "students",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    name: varchar("name", { length: 128 }).notNull(),
+    lastName: varchar("last_name", { length: 128 }).notNull(),
+    firstName: varchar("first_name", { length: 128 }).notNull(),
+    lastNameKana: varchar("last_name_kana", { length: 128 }).notNull(),
+    firstNameKana: varchar("first_name_kana", { length: 128 }).notNull(),
     currentGradeCode: gradeCodeEnum("current_grade_code").notNull(),
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

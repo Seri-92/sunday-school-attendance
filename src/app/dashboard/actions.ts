@@ -18,6 +18,7 @@ import {
 } from "@/lib/attendance";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
+import { buildStudentName } from "@/lib/students";
 
 function buildDashboardUrl(params: {
   tab?: string;
@@ -77,20 +78,35 @@ export async function createStudentAction(formData: FormData) {
   const tab = String(formData.get("tab") ?? "students");
   const classId = String(formData.get("classId") ?? "");
   const date = String(formData.get("date") ?? "");
-  const studentName = String(formData.get("studentName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastNameKana = String(formData.get("lastNameKana") ?? "").trim();
+  const firstNameKana = String(formData.get("firstNameKana") ?? "").trim();
   const gradeCode = String(formData.get("gradeCode") ?? "");
+  const studentName = buildStudentName({ lastName, firstName });
 
   if (!activeSchoolYear) {
     redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
   }
 
-  if (!studentName) {
+  if (!lastName || !firstName) {
     redirect(
       buildDashboardUrl({
         tab,
         classId,
         date,
-        error: "生徒名を入力してください。",
+        error: "姓と名を入力してください。",
+      }),
+    );
+  }
+
+  if (!lastNameKana || !firstNameKana) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId,
+        date,
+        error: "せいとめいのふりがなを入力してください。",
       }),
     );
   }
@@ -120,7 +136,10 @@ export async function createStudentAction(formData: FormData) {
     const [student] = await tx
       .insert(students)
       .values({
-        name: studentName,
+        lastName,
+        firstName,
+        lastNameKana,
+        firstNameKana,
         currentGradeCode: gradeCode,
         active: true,
       })

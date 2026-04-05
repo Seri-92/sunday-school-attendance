@@ -43,6 +43,13 @@
       "when": 1775368356287,
       "tag": "0005_outgoing_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775384572228,
+      "tag": "0006_split_student_name",
+      "breakpoints": true
     }
   ]
 }

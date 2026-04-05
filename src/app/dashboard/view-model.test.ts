@@ -59,21 +59,24 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
   ]);
 });
 
-test("sortStudentsByGrade orders by grade and then by student name", () => {
+test("sortStudentsByGrade orders by grade and then by student kana", () => {
   const students = [
     {
       gradeCode: "junior_high_1" as const,
       studentId: "student-3",
+      studentNameKana: "にちよう じろう",
       studentName: "日曜 次郎",
     },
     {
       gradeCode: "elementary_1" as const,
       studentId: "student-2",
+      studentNameKana: "にちよう はなこ",
       studentName: "日曜 花子",
     },
     {
       gradeCode: "elementary_1" as const,
       studentId: "student-1",
+      studentNameKana: "にちよう たろう",
       studentName: "日曜 太郎",
     },
   ];
@@ -81,17 +84,20 @@ test("sortStudentsByGrade orders by grade and then by student name", () => {
   assert.deepEqual(sortStudentsByGrade(students), [
     {
       gradeCode: "elementary_1",
-      studentId: "student-2",
-      studentName: "日曜 花子",
+      studentId: "student-1",
+      studentNameKana: "にちよう たろう",
+      studentName: "日曜 太郎",
     },
     {
       gradeCode: "elementary_1",
-      studentId: "student-1",
-      studentName: "日曜 太郎",
+      studentId: "student-2",
+      studentNameKana: "にちよう はなこ",
+      studentName: "日曜 花子",
     },
     {
       gradeCode: "junior_high_1",
       studentId: "student-3",
+      studentNameKana: "にちよう じろう",
       studentName: "日曜 次郎",
     },
   ]);
