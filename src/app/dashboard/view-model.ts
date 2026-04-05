@@ -4,7 +4,11 @@ import { gradeCodeValues, type AttendanceStatus, type GradeCode } from "@/db/sch
 export type DashboardTab = "week" | "attendance" | "students";
 
 export type AttendanceEditorStudent = {
+  firstName: string;
+  firstNameKana: string;
   gradeCode: GradeCode;
+  lastName: string;
+  lastNameKana: string;
   studentId: string;
   studentName: string;
   studentNameKana?: string;
@@ -25,8 +29,12 @@ export type AttendanceCounts = {
 export type AttendanceEditorItem = {
   defaultNote: string;
   defaultStatus: AttendanceStatus;
+  firstName: string;
+  firstNameKana: string;
   gradeLabel: string;
   hasExistingRecord: boolean;
+  lastName: string;
+  lastNameKana: string;
   studentId: string;
   studentName: string;
 };
@@ -158,8 +166,12 @@ export function buildAttendanceEditorItems(params: {
     return {
       defaultNote: existing?.note ?? "",
       defaultStatus: existing?.status ?? "absent",
+      firstName: student.firstName,
+      firstNameKana: student.firstNameKana,
       gradeLabel: gradeLabels[student.gradeCode],
       hasExistingRecord: existing !== undefined,
+      lastName: student.lastName,
+      lastNameKana: student.lastNameKana,
       studentId: student.studentId,
       studentName: student.studentName,
     };

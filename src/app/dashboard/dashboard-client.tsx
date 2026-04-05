@@ -13,6 +13,7 @@ import {
   type AttendanceEditorItem,
   type DashboardTab,
 } from "./view-model";
+import { StudentName } from "./student-name";
 
 type SwitcherOption = {
   label: string;
@@ -185,7 +186,13 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-lg font-semibold text-zinc-950">{item.studentName}</p>
+                  <StudentName
+                    firstName={item.firstName}
+                    firstNameKana={item.firstNameKana}
+                    lastName={item.lastName}
+                    lastNameKana={item.lastNameKana}
+                    nameClassName="text-lg font-semibold text-zinc-950"
+                  />
                   <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">

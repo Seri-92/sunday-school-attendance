@@ -195,7 +195,11 @@ export async function getClassStudents(classId: string, schoolYearId: string) {
   return classStudents.map((student) => ({
     active: student.active,
     assignmentId: student.assignmentId,
+    firstName: student.firstName,
+    firstNameKana: student.firstNameKana,
     gradeCode: student.gradeCode,
+    lastName: student.lastName,
+    lastNameKana: student.lastNameKana,
     studentId: student.studentId,
     studentName: buildStudentName(student),
     studentNameKana: buildStudentNameKana(student),

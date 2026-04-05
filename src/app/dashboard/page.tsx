@@ -18,6 +18,7 @@ import {
   AttendanceEditor,
   DashboardClassSwitcher,
 } from "./dashboard-client";
+import { StudentName } from "./student-name";
 import { StudentRegistrationForm } from "./student-registration-form";
 import {
   buildAttendanceEditorItems,
@@ -525,7 +526,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           key={student.studentId}
                           className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
                         >
-                          <p className="font-medium text-zinc-950">{student.studentName}</p>
+                          <StudentName
+                            firstName={student.firstName}
+                            firstNameKana={student.firstNameKana}
+                            lastName={student.lastName}
+                            lastNameKana={student.lastNameKana}
+                            nameClassName="text-base font-medium text-zinc-950"
+                          />
                           <p className="mt-1 text-sm text-zinc-600">
                             {gradeLabels[student.gradeCode]}
                           </p>
