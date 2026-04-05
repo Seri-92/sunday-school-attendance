@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { type AttendanceStatus } from "@/db/schema";
 import {
   formatAttendanceDateLabel,
   getActiveSchoolYear,
@@ -23,6 +22,7 @@ import {
   buildAttendanceEditorItems,
   buildDashboardHref,
   buildHistoryByDate,
+  getAttendanceStatusTone,
   getAttendanceCounts,
   sortStudentsByGrade,
   type DashboardTab,
@@ -51,17 +51,6 @@ function getDashboardTab(value: string | undefined): DashboardTab {
   }
 
   return "week";
-}
-
-function getStatusBadgeClass(status: AttendanceStatus | "unentered") {
-  switch (status) {
-    case "present":
-      return "border-emerald-200 bg-emerald-50 text-emerald-900";
-    case "absent":
-      return "border-rose-200 bg-rose-50 text-rose-900";
-    default:
-      return "border-zinc-200 bg-zinc-50 text-zinc-600";
-  }
 }
 
 function renderClassSwitcher(params: {
@@ -235,6 +224,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     selectedDateRecords: selectedDateRecords.values(),
     studentCount: students.length,
   });
+  const presentTone = getAttendanceStatusTone("present");
+  const absentTone = getAttendanceStatusTone("absent");
+  const unenteredTone = getAttendanceStatusTone("unentered");
   const attendanceEditorItems = buildAttendanceEditorItems({
     selectedDateRecords,
     students,
@@ -364,17 +356,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                      <p className="text-sm text-emerald-800">出席</p>
-                      <p className="mt-2 text-2xl font-semibold text-emerald-950">{presentCount}</p>
+                    <div className={`rounded-2xl border p-4 ${presentTone.summaryCardClassName}`}>
+                      <p className={`text-sm ${presentTone.summaryLabelClassName}`}>出席</p>
+                      <p className={`mt-2 text-2xl font-semibold ${presentTone.summaryValueClassName}`}>
+                        {presentCount}
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                      <p className="text-sm text-rose-800">欠席</p>
-                      <p className="mt-2 text-2xl font-semibold text-rose-950">{absentCount}</p>
+                    <div className={`rounded-2xl border p-4 ${absentTone.summaryCardClassName}`}>
+                      <p className={`text-sm ${absentTone.summaryLabelClassName}`}>欠席</p>
+                      <p className={`mt-2 text-2xl font-semibold ${absentTone.summaryValueClassName}`}>
+                        {absentCount}
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                      <p className="text-sm text-zinc-700">未入力</p>
-                      <p className="mt-2 text-2xl font-semibold text-zinc-950">{unenteredCount}</p>
+                    <div className={`rounded-2xl border p-4 ${unenteredTone.summaryCardClassName}`}>
+                      <p className={`text-sm ${unenteredTone.summaryLabelClassName}`}>未入力</p>
+                      <p
+                        className={`mt-2 text-2xl font-semibold ${unenteredTone.summaryValueClassName}`}
+                      >
+                        {unenteredCount}
+                      </p>
                     </div>
                   </div>
 
@@ -476,9 +476,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                             </div>
                             <div className="flex items-center gap-3">
                               <span
-                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getAttendanceStatusTone(
                                   state,
-                                )}`}
+                                ).badgeClassName}`}
                               >
                                 {summary.enteredCount > 0
                                   ? `${summary.enteredCount}/${students.length} 名入力`

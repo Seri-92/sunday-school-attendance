@@ -7,6 +7,7 @@ import type { AttendanceStatus } from "@/db/schema";
 import {
   buildAttendanceDraftInitialState,
   buildDashboardHref,
+  getAttendanceStatusTone,
   hasAttendanceDraftChanges,
   type AttendanceDraftState,
   type AttendanceEditorItem,
@@ -205,7 +206,7 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   {(["present", "absent"] as const).map((status) => {
                     const inputId = `${props.currentTab}-${props.selectedDate}-${item.studentId}-${status}`;
-                    const isPresent = status === "present";
+                    const tone = getAttendanceStatusTone(status);
 
                     return (
                       <div key={status}>
@@ -227,11 +228,7 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
                           value={status}
                         />
                         <label
-                          className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-4 text-base font-semibold transition ${
-                            isPresent
-                              ? "border-emerald-200 bg-white text-emerald-900 peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white"
-                              : "border-rose-200 bg-white text-rose-900 peer-checked:border-rose-600 peer-checked:bg-rose-600 peer-checked:text-white"
-                          }`}
+                          className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-4 text-base font-semibold transition ${tone.optionIdleClassName} ${tone.optionCheckedClassName}`}
                           htmlFor={inputId}
                         >
                           {status === "present" ? "出席" : "欠席"}

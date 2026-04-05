@@ -5,6 +5,7 @@ import {
   buildDashboardHref,
   buildAttendanceEditorItems,
   buildHistoryByDate,
+  getAttendanceStatusTone,
   getAttendanceCounts,
   hasAttendanceDraftChanges,
   sortStudentsByGrade,
@@ -111,6 +112,37 @@ test("getAttendanceCounts returns counts without making unentered negative", () 
     enteredCount: 3,
     presentCount: 2,
     unenteredCount: 0,
+  });
+});
+
+test("getAttendanceStatusTone returns muted but readable tones for attendance states", () => {
+  assert.deepEqual(getAttendanceStatusTone("present"), {
+    badgeClassName: "border-teal-200 bg-teal-50 text-teal-900",
+    optionCheckedClassName:
+      "peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-checked:text-white",
+    optionIdleClassName: "border-teal-200 bg-white text-teal-900",
+    summaryCardClassName: "border-teal-200 bg-teal-50",
+    summaryLabelClassName: "text-teal-800",
+    summaryValueClassName: "text-teal-950",
+  });
+
+  assert.deepEqual(getAttendanceStatusTone("absent"), {
+    badgeClassName: "border-amber-200 bg-amber-50 text-amber-900",
+    optionCheckedClassName:
+      "peer-checked:border-amber-600 peer-checked:bg-amber-600 peer-checked:text-white",
+    optionIdleClassName: "border-amber-200 bg-white text-amber-900",
+    summaryCardClassName: "border-amber-200 bg-amber-50",
+    summaryLabelClassName: "text-amber-800",
+    summaryValueClassName: "text-amber-950",
+  });
+
+  assert.deepEqual(getAttendanceStatusTone("unentered"), {
+    badgeClassName: "border-zinc-200 bg-zinc-50 text-zinc-600",
+    optionCheckedClassName: "",
+    optionIdleClassName: "",
+    summaryCardClassName: "border-zinc-200 bg-zinc-50",
+    summaryLabelClassName: "text-zinc-700",
+    summaryValueClassName: "text-zinc-950",
   });
 });
 
