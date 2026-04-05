@@ -34,8 +34,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 教師を登録する
               </h1>
               <p className="text-sm leading-6 text-zinc-600">
-                ログイン可能な教師アカウントを事前に登録します。初回ログイン時に
-                `auth_user_id` が自動で紐付きます。
+                ログイン可能な教師アカウントを事前に登録します。登録時に Clerk
+                ユーザーを用意し、`auth_user_id` を保存します。
               </p>
             </div>
             <SignOutButton />

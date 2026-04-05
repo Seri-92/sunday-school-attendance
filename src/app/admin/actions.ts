@@ -2,10 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { sql } from "drizzle-orm";
-import { db } from "@/db";
-import { teachers } from "@/db/schema";
 import { requireAdminTeacher } from "@/lib/auth/admin";
+import { registerTeacher } from "./create-teacher";
 import { parseCreateTeacherInput } from "./form";
 
 function buildAdminUrl(params: { error?: string; notice?: string }) {
@@ -33,31 +31,12 @@ export async function createTeacherAction(formData: FormData) {
     redirect(buildAdminUrl({ error: parsed.error }));
   }
 
-  const { active, email, name, role } = parsed.data;
-  const [existingTeacher] = await db
-    .select({
-      email: teachers.email,
-      id: teachers.id,
-      name: teachers.name,
-    })
-    .from(teachers)
-    .where(sql`lower(${teachers.email}) = ${email}`)
-    .limit(1);
+  const { name } = parsed.data;
+  const result = await registerTeacher(parsed.data);
 
-  if (existingTeacher) {
-    redirect(
-      buildAdminUrl({
-        error: `${existingTeacher.email} はすでに ${existingTeacher.name} として登録されています。`,
-      }),
-    );
+  if (!result.ok) {
+    redirect(buildAdminUrl({ error: result.error }));
   }
-
-  await db.insert(teachers).values({
-    active,
-    email,
-    name,
-    role,
-  });
 
   revalidatePath("/admin");
   redirect(buildAdminUrl({ notice: `${name} を教師として登録しました。` }));
