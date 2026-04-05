@@ -18,6 +18,7 @@ import {
   AttendanceEditor,
   DashboardClassSwitcher,
 } from "./dashboard-client";
+import { StudentRegistrationForm } from "./student-registration-form";
 import {
   buildAttendanceEditorItems,
   buildDashboardHref,
@@ -540,41 +541,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
                 <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
                   <h2 className="text-lg font-semibold text-zinc-950">新しい生徒を登録する</h2>
-                  <form action={createStudentAction} className="mt-5 space-y-4">
-                    <input type="hidden" name="tab" value="students" />
-                    <input type="hidden" name="classId" value={selectedClass.id} />
-                    <input type="hidden" name="date" value={selectedDate} />
-                    <label className="block space-y-2 text-sm text-zinc-700">
-                      <span className="font-medium">生徒名</span>
-                      <input
-                        className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-                        name="studentName"
-                        placeholder="例: 日曜 太郎"
-                        required
-                        type="text"
-                      />
-                    </label>
-                    <label className="block space-y-2 text-sm text-zinc-700">
-                      <span className="font-medium">学年</span>
-                      <select
-                        className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-                        defaultValue={selectedClass.gradeCode}
-                        name="gradeCode"
-                      >
-                        {Object.entries(gradeLabels).map(([gradeCode, label]) => (
-                          <option key={gradeCode} value={gradeCode}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      className="w-full rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
-                      type="submit"
-                    >
-                      このクラスへ登録する
-                    </button>
-                  </form>
+                  <StudentRegistrationForm
+                    classId={selectedClass.id}
+                    createStudentAction={createStudentAction}
+                    selectedDate={selectedDate}
+                    selectedGradeCode={selectedClass.gradeCode}
+                  />
                 </article>
               </>
             ) : null}

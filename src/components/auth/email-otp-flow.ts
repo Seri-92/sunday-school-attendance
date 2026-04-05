@@ -1,3 +1,5 @@
+export { createSingleFlight } from "@/lib/single-flight";
+
 type EmailCodeFactorLike = {
   strategy: string;
   emailAddressId?: string;
@@ -43,22 +45,4 @@ export async function requestSignInEmailCode({
     strategy: "email_code",
     emailAddressId,
   });
-}
-
-export function createSingleFlight() {
-  let isRunning = false;
-
-  return async function runSingleFlight<T>(task: () => Promise<T>) {
-    if (isRunning) {
-      return undefined;
-    }
-
-    isRunning = true;
-
-    try {
-      return await task();
-    } finally {
-      isRunning = false;
-    }
-  };
 }
