@@ -24,6 +24,7 @@ import {
   buildDashboardHref,
   buildHistoryByDate,
   getAttendanceCounts,
+  sortStudentsByGrade,
   type DashboardTab,
   type SelectedDateRecord,
 } from "./view-model";
@@ -214,6 +215,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const students = selectedClass
     ? await getClassStudents(selectedClass.id, activeSchoolYear.id)
     : [];
+  const studentsForTab = sortStudentsByGrade(students);
   const studentIds = students.map((student) => student.studentId);
   const records = selectedClass
     ? await getClassAttendanceRecords(
@@ -521,7 +523,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
                   {students.length > 0 ? (
                     <div className="mt-6 grid gap-3 md:grid-cols-2">
-                      {students.map((student) => (
+                      {studentsForTab.map((student) => (
                         <article
                           key={student.studentId}
                           className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"

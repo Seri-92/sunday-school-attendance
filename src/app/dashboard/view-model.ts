@@ -1,5 +1,5 @@
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
-import type { AttendanceStatus, GradeCode } from "@/db/schema";
+import { gradeCodeValues, type AttendanceStatus, type GradeCode } from "@/db/schema";
 
 export type DashboardTab = "week" | "attendance" | "students";
 
@@ -119,6 +119,23 @@ export function buildAttendanceEditorItems(params: {
       studentId: student.studentId,
       studentName: student.studentName,
     };
+  });
+}
+
+const gradeOrder = new Map(gradeCodeValues.map((gradeCode, index) => [gradeCode, index]));
+
+export function sortStudentsByGrade<T extends { gradeCode: GradeCode; studentName: string }>(
+  students: T[],
+) {
+  return [...students].sort((left, right) => {
+    const leftOrder = gradeOrder.get(left.gradeCode) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = gradeOrder.get(right.gradeCode) ?? Number.MAX_SAFE_INTEGER;
+
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+
+    return left.studentName.localeCompare(right.studentName, "ja");
   });
 }
 
