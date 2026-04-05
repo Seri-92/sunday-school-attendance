@@ -64,17 +64,6 @@ function getStatusBadgeClass(status: AttendanceStatus | "unentered") {
   }
 }
 
-function getTabLabel(tab: DashboardTab) {
-  switch (tab) {
-    case "week":
-      return "今週";
-    case "attendance":
-      return "出席";
-    case "students":
-      return "生徒";
-  }
-}
-
 function renderClassSwitcher(params: {
   availableClasses: Awaited<ReturnType<typeof getTeacherClassesForYear>>;
   selectedClassId?: string;
@@ -262,12 +251,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }));
 
   const tabs: DashboardTab[] = ["week", "attendance", "students"];
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(5,150,105,0.18),_transparent_34%),linear-gradient(180deg,#f6f6ef_0%,#eef4ef_100%)]">
       <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <header className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">
                 Dashboard
@@ -276,17 +264,23 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 {activeSchoolYear.label} の出席管理
               </h1>
             </div>
-            <div className="flex flex-col items-start gap-3 sm:items-end">
-              <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-                <p className="font-semibold">{teacher.name}</p>
-                <p className="text-emerald-800/80">{teacher.email}</p>
-                <p>{teacher.role === "admin" ? "管理者" : "教師"}</p>
-              </div>
+          </div>
+
+          <div className="mt-6 flex items-start justify-between gap-3 rounded-[1.5rem] bg-emerald-50 px-4 py-4">
+            <div className="min-w-0 text-sm text-emerald-950">
+              <p className="font-semibold">{teacher.name}</p>
+              <p className="mt-1 break-all text-emerald-900/85">{teacher.email}</p>
+              <p className="mt-1">{teacher.role === "admin" ? "管理者" : "教師"}</p>
+            </div>
+            <div className="shrink-0">
               <SignOutButton />
             </div>
           </div>
 
-          <nav className="mt-6 flex gap-2 overflow-x-auto pb-1">
+          <nav
+            aria-label="ダッシュボード表示切り替え"
+            className="mt-4 grid grid-cols-3 gap-2"
+          >
             {tabs.map((tab) => {
               const isActive = tab === currentTab;
               const href = buildDashboardHref({
@@ -298,14 +292,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               return (
                 <Link
                   key={tab}
-                  className={`inline-flex min-w-24 items-center justify-center rounded-full px-4 py-3 text-sm font-semibold transition ${
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex min-h-14 items-center justify-center rounded-[1.5rem] border px-3 py-3 text-center text-sm font-semibold transition sm:min-h-16 sm:px-4 sm:text-base ${
                     isActive
-                      ? "bg-zinc-950 text-white"
-                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                      ? "border-zinc-950 bg-zinc-950 text-white shadow-sm"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300 hover:bg-white"
                   }`}
                   href={href}
                 >
-                  {getTabLabel(tab)}
+                  {tab === "week" ? "今週" : tab === "attendance" ? "出席" : "生徒"}
                 </Link>
               );
             })}
