@@ -48,7 +48,7 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
     },
     {
       defaultNote: "",
-      defaultStatus: "present",
+      defaultStatus: "absent",
       gradeLabel: "小学1年",
       hasExistingRecord: false,
       studentId: "student-2",
@@ -107,7 +107,7 @@ test("buildAttendanceDraftInitialState uses existing values and defaults missing
     },
     "student-2": {
       note: "",
-      status: "present",
+      status: "absent",
     },
   });
 });

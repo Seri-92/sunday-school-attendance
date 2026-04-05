@@ -113,7 +113,7 @@ export function buildAttendanceEditorItems(params: {
 
     return {
       defaultNote: existing?.note ?? "",
-      defaultStatus: existing?.status ?? "present",
+      defaultStatus: existing?.status ?? "absent",
       gradeLabel: gradeLabels[student.gradeCode],
       hasExistingRecord: existing !== undefined,
       studentId: student.studentId,

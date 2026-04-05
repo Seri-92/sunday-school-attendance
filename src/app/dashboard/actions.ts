@@ -224,21 +224,22 @@ export async function saveAttendanceAction(formData: FormData) {
     }
 
     for (const student of classStudents) {
-      const rawStatus = String(formData.get(`status:${student.studentId}`) ?? "present");
+      const rawStatus = String(formData.get(`status:${student.studentId}`) ?? "absent");
       const rawNote = String(formData.get(`note:${student.studentId}`) ?? "").trim();
+      const normalizedStatus = isAttendanceStatus(rawStatus) ? rawStatus : "absent";
 
       await tx
         .insert(attendanceRecords)
         .values({
           attendanceDateId: attendanceDate.id,
           studentId: student.studentId,
-          status: isAttendanceStatus(rawStatus) ? rawStatus : "present",
+          status: normalizedStatus,
           note: rawNote || null,
         })
         .onConflictDoUpdate({
           target: [attendanceRecords.attendanceDateId, attendanceRecords.studentId],
           set: {
-            status: isAttendanceStatus(rawStatus) ? rawStatus : "present",
+            status: normalizedStatus,
             note: rawNote || null,
             updatedAt: new Date(),
           },
