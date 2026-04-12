@@ -222,6 +222,14 @@ export function buildAttendanceDraftInitialState(items: AttendanceEditorItem[]):
   );
 }
 
+export function isWeekAttendanceReadonly(params: {
+  currentTab: DashboardTab;
+  hasExistingRecords: boolean;
+  isEditingAll: boolean;
+}) {
+  return params.currentTab === "week" && params.hasExistingRecords && !params.isEditingAll;
+}
+
 export function hasAttendanceDraftChanges(params: {
   draftState: AttendanceDraftState;
   initialState: AttendanceDraftState;

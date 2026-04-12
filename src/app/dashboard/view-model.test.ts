@@ -13,6 +13,7 @@ import {
   getAttendanceCounts,
   hasAttendanceDraftChanges,
   hasAttendanceExtraCountChanges,
+  isWeekAttendanceReadonly,
   sortStudentsByGrade,
   type SelectedDateRecord,
 } from "./view-model";
@@ -216,6 +217,44 @@ test("buildAttendanceDraftInitialState uses existing values and defaults missing
       status: "absent",
     },
   });
+});
+
+test("isWeekAttendanceReadonly only locks the week tab until full edit mode starts", () => {
+  assert.equal(
+    isWeekAttendanceReadonly({
+      currentTab: "week",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    true,
+  );
+
+  assert.equal(
+    isWeekAttendanceReadonly({
+      currentTab: "week",
+      hasExistingRecords: true,
+      isEditingAll: true,
+    }),
+    false,
+  );
+
+  assert.equal(
+    isWeekAttendanceReadonly({
+      currentTab: "week",
+      hasExistingRecords: false,
+      isEditingAll: false,
+    }),
+    false,
+  );
+
+  assert.equal(
+    isWeekAttendanceReadonly({
+      currentTab: "attendance",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    false,
+  );
 });
 
 test("hasAttendanceDraftChanges ignores note whitespace but detects status changes", () => {

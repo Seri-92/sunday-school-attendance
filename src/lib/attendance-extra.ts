@@ -17,6 +17,7 @@ export type AttendanceExtraCountInput = {
   category: AttendanceExtraCategory;
   defaultValue: number;
   description: string;
+  hasExistingValue: boolean;
   label: string;
   name: string;
 };
@@ -35,6 +36,7 @@ export function buildGuardianAttendanceExtraInput(
     category: guardianAttendanceExtraCategory,
     defaultValue: existingCount ?? 0,
     description: "保護者の人数を記録します。",
+    hasExistingValue: existingCount !== null && existingCount !== undefined,
     label: "保護者",
     name: guardianAttendanceExtraFieldName,
   };
@@ -53,6 +55,7 @@ export function buildJuniorHighOtherAttendanceExtraInput(params: {
     category: juniorHighOtherAttendanceExtraCategory,
     defaultValue: params.existingCount ?? 0,
     description: "中学科の出席と一緒に、その他人数を記録します。",
+    hasExistingValue: params.existingCount !== null && params.existingCount !== undefined,
     label: "その他",
     name: juniorHighOtherAttendanceExtraFieldName,
   };
