@@ -8,6 +8,7 @@ import {
   buildAttendanceDraftInitialState,
   buildDashboardHref,
   buildAttendanceEditorItems,
+  buildAttendanceSummaryBadges,
   buildHistoryByDate,
   getAttendanceStatusTone,
   getAttendanceCounts,
@@ -172,6 +173,34 @@ test("getAttendanceStatusTone returns muted but readable tones for attendance st
     summaryLabelClassName: "text-zinc-700",
     summaryValueClassName: "text-zinc-950",
   });
+});
+
+test("buildAttendanceSummaryBadges returns compact status badges in display order", () => {
+  assert.deepEqual(
+    buildAttendanceSummaryBadges({
+      absentCount: 2,
+      enteredCount: 5,
+      presentCount: 3,
+      unenteredCount: 1,
+    }),
+    [
+      {
+        count: 3,
+        label: "出席",
+        tone: getAttendanceStatusTone("present"),
+      },
+      {
+        count: 2,
+        label: "欠席",
+        tone: getAttendanceStatusTone("absent"),
+      },
+      {
+        count: 1,
+        label: "未入力",
+        tone: getAttendanceStatusTone("unentered"),
+      },
+    ],
+  );
 });
 
 test("buildAttendanceDraftInitialState uses existing values and defaults missing records", () => {

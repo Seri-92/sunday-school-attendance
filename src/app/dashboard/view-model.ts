@@ -69,6 +69,12 @@ export type AttendanceStatusTone = {
   optionCheckedClassName: string;
 };
 
+export type AttendanceSummaryBadge = {
+  count: number;
+  label: string;
+  tone: AttendanceStatusTone;
+};
+
 function normalizeDraftNote(note: string) {
   return note.trim();
 }
@@ -159,6 +165,28 @@ export function getAttendanceCounts(params: {
     presentCount,
     unenteredCount: Math.max(params.studentCount - enteredCount, 0),
   };
+}
+
+export function buildAttendanceSummaryBadges(
+  counts: AttendanceCounts,
+): AttendanceSummaryBadge[] {
+  return [
+    {
+      count: counts.presentCount,
+      label: "出席",
+      tone: getAttendanceStatusTone("present"),
+    },
+    {
+      count: counts.absentCount,
+      label: "欠席",
+      tone: getAttendanceStatusTone("absent"),
+    },
+    {
+      count: counts.unenteredCount,
+      label: "未入力",
+      tone: getAttendanceStatusTone("unentered"),
+    },
+  ];
 }
 
 export function buildAttendanceEditorItems(params: {

@@ -33,6 +33,7 @@ import { StudentName } from "./student-name";
 import { StudentRegistrationForm } from "./student-registration-form";
 import {
   buildAttendanceEditorItems,
+  buildAttendanceSummaryBadges,
   buildDashboardHref,
   buildHistoryByDate,
   getAttendanceStatusTone,
@@ -244,9 +245,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     selectedDateRecords: selectedDateRecords.values(),
     studentCount: students.length,
   });
-  const presentTone = getAttendanceStatusTone("present");
-  const absentTone = getAttendanceStatusTone("absent");
-  const unenteredTone = getAttendanceStatusTone("unentered");
+  const attendanceSummaryBadges = buildAttendanceSummaryBadges({
+    absentCount,
+    enteredCount,
+    presentCount,
+    unenteredCount,
+  });
   const attendanceEditorItems = buildAttendanceEditorItems({
     selectedDateRecords,
     students,
@@ -392,27 +396,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </Link>
                   </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                    <div className={`rounded-2xl border p-4 ${presentTone.summaryCardClassName}`}>
-                      <p className={`text-sm ${presentTone.summaryLabelClassName}`}>出席</p>
-                      <p className={`mt-2 text-2xl font-semibold ${presentTone.summaryValueClassName}`}>
-                        {presentCount}
-                      </p>
-                    </div>
-                    <div className={`rounded-2xl border p-4 ${absentTone.summaryCardClassName}`}>
-                      <p className={`text-sm ${absentTone.summaryLabelClassName}`}>欠席</p>
-                      <p className={`mt-2 text-2xl font-semibold ${absentTone.summaryValueClassName}`}>
-                        {absentCount}
-                      </p>
-                    </div>
-                    <div className={`rounded-2xl border p-4 ${unenteredTone.summaryCardClassName}`}>
-                      <p className={`text-sm ${unenteredTone.summaryLabelClassName}`}>未入力</p>
-                      <p
-                        className={`mt-2 text-2xl font-semibold ${unenteredTone.summaryValueClassName}`}
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {attendanceSummaryBadges.map((badge) => (
+                      <div
+                        key={badge.label}
+                        className={`inline-flex min-w-[5.25rem] items-baseline justify-between gap-2 rounded-full border px-3 py-2 ${badge.tone.badgeClassName}`}
                       >
-                        {unenteredCount}
-                      </p>
-                    </div>
+                        <span className="text-xs font-medium tracking-tight">{badge.label}</span>
+                        <span className="text-base font-semibold tabular-nums">{badge.count}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <AttendanceEditor
