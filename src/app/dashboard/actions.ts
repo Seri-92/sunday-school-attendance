@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
-import { attendanceDates, attendanceRecords, studentClassAssignments, students } from "@/db/schema";
+import {
+  attendanceDates,
+  attendanceExtraCounts,
+  attendanceRecords,
+  studentClassAssignments,
+  students,
+  weeklyAttendanceExtraCounts,
+} from "@/db/schema";
 import {
   formatAttendanceDateLabel,
   getActiveSchoolYear,
@@ -16,6 +23,14 @@ import {
   isGradeCode,
   type LinkedTeacher,
 } from "@/lib/attendance";
+import {
+  guardianAttendanceExtraFieldName,
+  guardianAttendanceExtraCategory,
+  juniorHighOtherAttendanceExtraCategory,
+  juniorHighOtherAttendanceExtraFieldName,
+  parseAttendanceExtraHeadcount,
+  supportsJuniorHighOtherAttendanceExtra,
+} from "@/lib/attendance-extra";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import { buildStudentName } from "@/lib/students";
@@ -70,6 +85,50 @@ async function requireLinkedTeacherForAction() {
   }
 
   return linkedTeacher.teacher as LinkedTeacher;
+}
+
+async function findOrCreateAttendanceDate(params: {
+  date: string;
+  schoolYearId: string;
+  tx: Pick<typeof db, "insert" | "select">;
+}) {
+  let [attendanceDate] = await params.tx
+    .select()
+    .from(attendanceDates)
+    .where(
+      and(
+        eq(attendanceDates.schoolYearId, params.schoolYearId),
+        eq(attendanceDates.date, params.date),
+      ),
+    )
+    .limit(1);
+
+  if (!attendanceDate) {
+    await params.tx
+      .insert(attendanceDates)
+      .values({
+        schoolYearId: params.schoolYearId,
+        date: params.date,
+      })
+      .onConflictDoNothing();
+
+    [attendanceDate] = await params.tx
+      .select()
+      .from(attendanceDates)
+      .where(
+        and(
+          eq(attendanceDates.schoolYearId, params.schoolYearId),
+          eq(attendanceDates.date, params.date),
+        ),
+      )
+      .limit(1);
+  }
+
+  if (!attendanceDate) {
+    throw new Error("attendance_date の作成に失敗しました。");
+  }
+
+  return attendanceDate;
 }
 
 export async function createStudentAction(formData: FormData) {
@@ -199,6 +258,13 @@ export async function saveAttendanceAction(formData: FormData) {
   }
 
   const classStudents = await getClassStudents(classRecord.id, activeSchoolYear.id);
+  const supportsJuniorHighOtherCount = supportsJuniorHighOtherAttendanceExtra({
+    className: classRecord.name,
+    gradeCode: classRecord.gradeCode,
+  });
+  const juniorHighOtherHeadcount = supportsJuniorHighOtherCount
+    ? parseAttendanceExtraHeadcount(formData.get(juniorHighOtherAttendanceExtraFieldName))
+    : null;
 
   if (classStudents.length === 0) {
     redirect(
@@ -211,36 +277,23 @@ export async function saveAttendanceAction(formData: FormData) {
     );
   }
 
+  if (supportsJuniorHighOtherCount && juniorHighOtherHeadcount === null) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId: classRecord.id,
+        date,
+        error: "その他の人数は 0 以上の整数で入力してください。",
+      }),
+    );
+  }
+
   await db.transaction(async (tx) => {
-    let [attendanceDate] = await tx
-      .select()
-      .from(attendanceDates)
-      .where(
-        and(eq(attendanceDates.schoolYearId, activeSchoolYear.id), eq(attendanceDates.date, date)),
-      )
-      .limit(1);
-
-    if (!attendanceDate) {
-      await tx
-        .insert(attendanceDates)
-        .values({
-          schoolYearId: activeSchoolYear.id,
-          date,
-        })
-        .onConflictDoNothing();
-
-      [attendanceDate] = await tx
-        .select()
-        .from(attendanceDates)
-        .where(
-          and(eq(attendanceDates.schoolYearId, activeSchoolYear.id), eq(attendanceDates.date, date)),
-        )
-        .limit(1);
-    }
-
-    if (!attendanceDate) {
-      throw new Error("attendance_date の作成に失敗しました。");
-    }
+    const attendanceDate = await findOrCreateAttendanceDate({
+      date,
+      schoolYearId: activeSchoolYear.id,
+      tx,
+    });
 
     for (const student of classStudents) {
       const rawStatus = String(formData.get(`status:${student.studentId}`) ?? "absent");
@@ -264,6 +317,28 @@ export async function saveAttendanceAction(formData: FormData) {
           },
         });
     }
+
+    if (supportsJuniorHighOtherCount) {
+      await tx
+        .insert(attendanceExtraCounts)
+        .values({
+          attendanceDateId: attendanceDate.id,
+          category: juniorHighOtherAttendanceExtraCategory,
+          classId: classRecord.id,
+          headcount: juniorHighOtherHeadcount ?? 0,
+        })
+        .onConflictDoUpdate({
+          target: [
+            attendanceExtraCounts.attendanceDateId,
+            attendanceExtraCounts.classId,
+            attendanceExtraCounts.category,
+          ],
+          set: {
+            headcount: juniorHighOtherHeadcount ?? 0,
+            updatedAt: new Date(),
+          },
+        });
+    }
   });
 
   revalidatePath("/dashboard");
@@ -273,6 +348,80 @@ export async function saveAttendanceAction(formData: FormData) {
       classId: classRecord.id,
       date,
       notice: `${classRecord.name} の ${formatAttendanceDateLabel(date)} の出席を保存しました。`,
+    }),
+  );
+}
+
+export async function saveWeeklyAttendanceExtraAction(formData: FormData) {
+  await requireLinkedTeacherForAction();
+  const activeSchoolYear = await getActiveSchoolYear();
+  const tab = String(formData.get("tab") ?? "week");
+  const classId = String(formData.get("classId") ?? "");
+  const date = String(formData.get("date") ?? "");
+  const guardianHeadcount = parseAttendanceExtraHeadcount(
+    formData.get(guardianAttendanceExtraFieldName),
+  );
+
+  if (!activeSchoolYear) {
+    redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
+  }
+
+  const validAttendanceDates = getSundaysInRange(activeSchoolYear.startDate, activeSchoolYear.endDate);
+
+  if (!isAttendanceDateInScope(date, validAttendanceDates)) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId,
+        error: `${activeSchoolYear.label} の日曜を選択してください。`,
+      }),
+    );
+  }
+
+  if (guardianHeadcount === null) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId,
+        date,
+        error: "保護者の人数は 0 以上の整数で入力してください。",
+      }),
+    );
+  }
+
+  await db.transaction(async (tx) => {
+    const attendanceDate = await findOrCreateAttendanceDate({
+      date,
+      schoolYearId: activeSchoolYear.id,
+      tx,
+    });
+
+    await tx
+      .insert(weeklyAttendanceExtraCounts)
+      .values({
+        attendanceDateId: attendanceDate.id,
+        category: guardianAttendanceExtraCategory,
+        headcount: guardianHeadcount,
+      })
+      .onConflictDoUpdate({
+        target: [
+          weeklyAttendanceExtraCounts.attendanceDateId,
+          weeklyAttendanceExtraCounts.category,
+        ],
+        set: {
+          headcount: guardianHeadcount,
+          updatedAt: new Date(),
+        },
+      });
+  });
+
+  revalidatePath("/dashboard");
+  redirect(
+    buildDashboardUrl({
+      tab,
+      classId,
+      date,
+      notice: `${formatAttendanceDateLabel(date)} の保護者人数を保存しました。`,
     }),
   );
 }

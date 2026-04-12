@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attendanceDates,
+  attendanceExtraCounts,
   attendanceRecords,
   classTeacherAssignments,
   classes,
@@ -11,6 +12,7 @@ import {
   studentClassAssignments,
   students,
   teachers,
+  weeklyAttendanceExtraCounts,
 } from "@/db/schema";
 import { shouldFilterClassesByAssignment } from "@/lib/class-access";
 import { buildStudentName, buildStudentNameKana } from "@/lib/students";
@@ -231,6 +233,50 @@ export async function getClassAttendanceRecords(
         inArray(attendanceRecords.studentId, studentIds),
         gte(attendanceDates.date, startDate),
         lte(attendanceDates.date, endDate),
+      ),
+    );
+}
+
+export async function getClassAttendanceExtraCounts(
+  classId: string,
+  schoolYearId: string,
+  date: string,
+) {
+  return db
+    .select({
+      category: attendanceExtraCounts.category,
+      classId: attendanceExtraCounts.classId,
+      headcount: attendanceExtraCounts.headcount,
+    })
+    .from(attendanceExtraCounts)
+    .innerJoin(attendanceDates, eq(attendanceExtraCounts.attendanceDateId, attendanceDates.id))
+    .where(
+      and(
+        eq(attendanceExtraCounts.classId, classId),
+        eq(attendanceDates.schoolYearId, schoolYearId),
+        eq(attendanceDates.date, date),
+      ),
+    );
+}
+
+export async function getWeeklyAttendanceExtraCounts(
+  schoolYearId: string,
+  date: string,
+) {
+  return db
+    .select({
+      category: weeklyAttendanceExtraCounts.category,
+      headcount: weeklyAttendanceExtraCounts.headcount,
+    })
+    .from(weeklyAttendanceExtraCounts)
+    .innerJoin(
+      attendanceDates,
+      eq(weeklyAttendanceExtraCounts.attendanceDateId, attendanceDates.id),
+    )
+    .where(
+      and(
+        eq(attendanceDates.schoolYearId, schoolYearId),
+        eq(attendanceDates.date, date),
       ),
     );
 }

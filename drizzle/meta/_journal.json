@@ -50,6 +50,13 @@
       "when": 1775384572228,
       "tag": "0006_split_student_name",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775963357988,
+      "tag": "0007_broken_tyrannus",
+      "breakpoints": true
     }
   ]
 }

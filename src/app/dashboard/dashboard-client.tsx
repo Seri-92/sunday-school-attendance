@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import type { AttendanceStatus } from "@/db/schema";
+import type { AttendanceExtraCountInput } from "@/lib/attendance-extra";
 import {
   buildAttendanceDraftInitialState,
   buildDashboardHref,
   getAttendanceStatusTone,
   hasAttendanceDraftChanges,
+  hasAttendanceExtraCountChanges,
   type AttendanceDraftState,
   type AttendanceEditorItem,
   type DashboardTab,
@@ -24,10 +26,21 @@ type AttendanceEditorProps = {
   classId: string;
   currentTab: DashboardTab;
   description: string;
+  extraCountInput?: AttendanceExtraCountInput | null;
   items: AttendanceEditorItem[];
   saveAttendanceAction: (formData: FormData) => void | Promise<void>;
   selectedDate: string;
   summaryLabel: string;
+};
+
+type WeeklyAttendanceExtraFormProps = {
+  classId?: string;
+  currentTab: DashboardTab;
+  description: string;
+  extraCountInput: AttendanceExtraCountInput;
+  saveWeeklyAttendanceExtraAction: (formData: FormData) => void | Promise<void>;
+  selectedDate: string;
+  title: string;
 };
 
 type DashboardClassSwitcherProps = {
@@ -165,10 +178,18 @@ function updateDraftState(params: {
 export function AttendanceEditor(props: AttendanceEditorProps) {
   const initialState = buildAttendanceDraftInitialState(props.items);
   const [draftState, setDraftState] = useState(initialState);
-  const hasChanges = hasAttendanceDraftChanges({
-    draftState,
-    initialState,
-  });
+  const [extraCountValue, setExtraCountValue] = useState(
+    props.extraCountInput ? String(props.extraCountInput.defaultValue) : "",
+  );
+  const hasChanges =
+    hasAttendanceDraftChanges({
+      draftState,
+      initialState,
+    }) ||
+    hasAttendanceExtraCountChanges({
+      currentValue: extraCountValue,
+      extraCountInput: props.extraCountInput ?? null,
+    });
 
   return (
     <form action={props.saveAttendanceAction} className="mt-6">
@@ -176,6 +197,39 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
       <input type="hidden" name="classId" value={props.classId} />
       <input type="hidden" name="date" value={props.selectedDate} />
       <div className="space-y-4 pb-32">
+        {props.extraCountInput ? (
+          <section className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50/80 p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                  Attendance Extra
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-zinc-950">
+                  {props.extraCountInput.label}の人数
+                </h3>
+                <p className="mt-1 text-sm text-zinc-600">
+                  {props.extraCountInput.description}
+                </p>
+              </div>
+              <label className="block min-w-40 space-y-2 text-sm text-zinc-700">
+                <span className="font-medium">{props.extraCountInput.label}</span>
+                <input
+                  className="w-full rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-zinc-950"
+                  inputMode="numeric"
+                  min={0}
+                  name={props.extraCountInput.name}
+                  onChange={(event) => {
+                    setExtraCountValue(event.target.value);
+                  }}
+                  step={1}
+                  type="number"
+                  value={extraCountValue}
+                />
+              </label>
+            </div>
+          </section>
+        ) : null}
+
         {props.items.map((item) => {
           const currentValue = draftState[item.studentId];
 
@@ -278,6 +332,61 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
         isDisabled={props.items.length === 0}
         summaryLabel={props.summaryLabel}
       />
+    </form>
+  );
+}
+
+export function WeeklyAttendanceExtraForm(props: WeeklyAttendanceExtraFormProps) {
+  const [extraCountValue, setExtraCountValue] = useState(
+    String(props.extraCountInput.defaultValue),
+  );
+  const hasChanges = hasAttendanceExtraCountChanges({
+    currentValue: extraCountValue,
+    extraCountInput: props.extraCountInput,
+  });
+
+  return (
+    <form action={props.saveWeeklyAttendanceExtraAction}>
+      <input type="hidden" name="tab" value={props.currentTab} />
+      <input type="hidden" name="classId" value={props.classId ?? ""} />
+      <input type="hidden" name="date" value={props.selectedDate} />
+      <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
+              Attendance Extra
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-zinc-950">{props.title}</h2>
+            <p className="mt-1 text-sm text-zinc-600">{props.description}</p>
+          </div>
+          <label className="block space-y-2 text-sm text-zinc-700">
+            <span className="font-medium">{props.extraCountInput.label}の人数</span>
+            <input
+              className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+              inputMode="numeric"
+              min={0}
+              name={props.extraCountInput.name}
+              onChange={(event) => {
+                setExtraCountValue(event.target.value);
+              }}
+              step={1}
+              type="number"
+              value={extraCountValue}
+            />
+          </label>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs text-zinc-600">
+              {hasChanges ? "未保存の変更があります。" : props.extraCountInput.description}
+            </p>
+            <button
+              className="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+              type="submit"
+            >
+              保存する
+            </button>
+          </div>
+        </div>
+      </section>
     </form>
   );
 }

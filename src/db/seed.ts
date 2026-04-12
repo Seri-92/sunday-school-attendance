@@ -48,6 +48,14 @@ const teacherSeed = [
     role: "teacher" as const,
     active: true,
   },
+  {
+    id: "20260000-0000-4000-8000-000000000104",
+    authUserId: null,
+    name: "sh192b",
+    email: "sh192b@gmail.com",
+    role: "teacher" as const,
+    active: true,
+  },
 ];
 
 const classSeed = [

@@ -3,20 +3,31 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
   formatAttendanceDateLabel,
   getActiveSchoolYear,
+  getClassAttendanceExtraCounts,
   getClassAttendanceRecords,
   getClassStudents,
   getDefaultAttendanceDate,
   getSundaysInRange,
   getTeacherClassesForYear,
+  getWeeklyAttendanceExtraCounts,
 } from "@/lib/attendance";
+import {
+  buildGuardianAttendanceExtraInput,
+  buildJuniorHighOtherAttendanceExtraInput,
+} from "@/lib/attendance-extra";
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
-import { createStudentAction, saveAttendanceAction } from "./actions";
+import {
+  createStudentAction,
+  saveAttendanceAction,
+  saveWeeklyAttendanceExtraAction,
+} from "./actions";
 import {
   AttendanceDateSwitcher,
   AttendanceEditor,
   DashboardClassSwitcher,
+  WeeklyAttendanceExtraForm,
 } from "./dashboard-client";
 import { StudentName } from "./student-name";
 import { StudentRegistrationForm } from "./student-registration-form";
@@ -205,6 +216,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         activeSchoolYear.endDate,
       )
     : [];
+  const classAttendanceExtraCounts = selectedClass
+    ? await getClassAttendanceExtraCounts(selectedClass.id, activeSchoolYear.id, selectedDate)
+    : [];
+  const weeklyAttendanceExtraCounts = await getWeeklyAttendanceExtraCounts(
+    activeSchoolYear.id,
+    selectedDate,
+  );
 
   const selectedDateRecords = new Map<string, SelectedDateRecord>(
     records
@@ -233,8 +251,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     selectedDateRecords,
     students,
   });
+  const guardianCountRecord = weeklyAttendanceExtraCounts.find(
+    (record) => record.category === "guardian",
+  );
+  const juniorHighOtherCountRecord = classAttendanceExtraCounts.find(
+    (record) => record.category === "junior_high_other",
+  );
+  const guardianExtraCountInput = buildGuardianAttendanceExtraInput(
+    guardianCountRecord?.headcount,
+  );
+  const juniorHighOtherExtraCountInput = selectedClass
+    ? buildJuniorHighOtherAttendanceExtraInput({
+        className: selectedClass.name,
+        existingCount: juniorHighOtherCountRecord?.headcount,
+        gradeCode: selectedClass.gradeCode,
+      })
+    : null;
   const attendanceEditorKey = JSON.stringify({
     currentTab,
+    juniorHighOtherExtraCountInput,
     items: attendanceEditorItems,
     selectedClassId: selectedClass?.id ?? "",
     selectedDate,
@@ -385,6 +420,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     classId={selectedClass.id}
                     currentTab={currentTab}
                     description={`${formatAttendanceDateLabel(selectedDate)} の出席を保存します。`}
+                    extraCountInput={juniorHighOtherExtraCountInput}
                     items={attendanceEditorItems}
                     saveAttendanceAction={saveAttendanceAction}
                     selectedDate={selectedDate}
@@ -424,6 +460,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     classId={selectedClass.id}
                     currentTab={currentTab}
                     description={`${formatAttendanceDateLabel(selectedDate)} の内容を再保存します。`}
+                    extraCountInput={juniorHighOtherExtraCountInput}
                     items={attendanceEditorItems}
                     saveAttendanceAction={saveAttendanceAction}
                     selectedDate={selectedDate}
@@ -556,6 +593,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   />
                 </article>
               </>
+            ) : null}
+
+            {selectedClass && currentTab !== "students" ? (
+              <WeeklyAttendanceExtraForm
+                classId={selectedClass.id}
+                currentTab={currentTab}
+                description={`生徒出席とは別に、${formatAttendanceDateLabel(selectedDate)} の保護者人数を記録します。`}
+                extraCountInput={guardianExtraCountInput}
+                saveWeeklyAttendanceExtraAction={saveWeeklyAttendanceExtraAction}
+                selectedDate={selectedDate}
+                title="週の補足情報"
+              />
             ) : null}
           </div>
         </section>

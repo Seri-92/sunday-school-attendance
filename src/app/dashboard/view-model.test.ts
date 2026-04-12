@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildGuardianAttendanceExtraInput,
+  buildJuniorHighOtherAttendanceExtraInput,
+} from "@/lib/attendance-extra";
+import {
   buildAttendanceDraftInitialState,
   buildDashboardHref,
   buildAttendanceEditorItems,
@@ -8,6 +12,7 @@ import {
   getAttendanceStatusTone,
   getAttendanceCounts,
   hasAttendanceDraftChanges,
+  hasAttendanceExtraCountChanges,
   sortStudentsByGrade,
   type SelectedDateRecord,
 } from "./view-model";
@@ -255,6 +260,37 @@ test("hasAttendanceDraftChanges ignores note whitespace but detects status chang
         },
       },
       initialState,
+    }),
+    true,
+  );
+});
+
+test("hasAttendanceExtraCountChanges only changes when the guardian count changes", () => {
+  const extraCountInput = buildGuardianAttendanceExtraInput(3);
+
+  assert.equal(
+    hasAttendanceExtraCountChanges({
+      currentValue: "3",
+      extraCountInput,
+    }),
+    false,
+  );
+
+  assert.equal(
+    hasAttendanceExtraCountChanges({
+      currentValue: "   ",
+      extraCountInput: buildJuniorHighOtherAttendanceExtraInput({
+        className: "中学科",
+        gradeCode: "junior_high_1",
+      }),
+    }),
+    false,
+  );
+
+  assert.equal(
+    hasAttendanceExtraCountChanges({
+      currentValue: "4",
+      extraCountInput,
     }),
     true,
   );

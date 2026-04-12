@@ -1,3 +1,4 @@
+import type { AttendanceExtraCountInput } from "@/lib/attendance-extra";
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
 import { gradeCodeValues, type AttendanceStatus, type GradeCode } from "@/db/schema";
 
@@ -70,6 +71,10 @@ export type AttendanceStatusTone = {
 
 function normalizeDraftNote(note: string) {
   return note.trim();
+}
+
+function normalizeExtraCountValue(value: string) {
+  return value.trim() === "" ? "0" : value.trim();
 }
 
 export function getAttendanceStatusTone(
@@ -244,6 +249,20 @@ export function hasAttendanceDraftChanges(params: {
   }
 
   return false;
+}
+
+export function hasAttendanceExtraCountChanges(params: {
+  currentValue: string;
+  extraCountInput: AttendanceExtraCountInput | null;
+}) {
+  if (!params.extraCountInput) {
+    return false;
+  }
+
+  return (
+    normalizeExtraCountValue(params.currentValue) !==
+    String(params.extraCountInput.defaultValue)
+  );
 }
 
 export function buildHistoryByDate(params: {

@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -25,6 +26,10 @@ export const gradeCodeValues = [
   "junior_high_3",
 ] as const;
 export const assignmentTypeValues = ["auto", "manual"] as const;
+export const attendanceExtraCategoryValues = [
+  "guardian",
+  "junior_high_other",
+] as const;
 export const attendanceStatusValues = [
   "present",
   "absent",
@@ -33,6 +38,7 @@ export const attendanceStatusValues = [
 export type TeacherRole = (typeof teacherRoleValues)[number];
 export type GradeCode = (typeof gradeCodeValues)[number];
 export type AssignmentType = (typeof assignmentTypeValues)[number];
+export type AttendanceExtraCategory = (typeof attendanceExtraCategoryValues)[number];
 export type AttendanceStatus = (typeof attendanceStatusValues)[number];
 
 export const teacherRoleEnum = pgEnum("teacher_role", teacherRoleValues);
@@ -40,6 +46,10 @@ export const gradeCodeEnum = pgEnum("grade_code", gradeCodeValues);
 export const assignmentTypeEnum = pgEnum(
   "assignment_type",
   assignmentTypeValues,
+);
+export const attendanceExtraCategoryEnum = pgEnum(
+  "attendance_extra_category",
+  attendanceExtraCategoryValues,
 );
 
 export const teachers = pgTable(
@@ -229,5 +239,58 @@ export const attendanceRecords = pgTable(
       table.studentId,
     ),
     index("attendance_records_student_idx").on(table.studentId),
+  ],
+);
+
+export const attendanceExtraCounts = pgTable(
+  "attendance_extra_counts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    attendanceDateId: uuid("attendance_date_id")
+      .notNull()
+      .references(() => attendanceDates.id, { onDelete: "cascade" }),
+    classId: uuid("class_id")
+      .notNull()
+      .references(() => classes.id, { onDelete: "cascade" }),
+    category: attendanceExtraCategoryEnum("category").notNull(),
+    headcount: integer("headcount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("attendance_extra_counts_date_class_category_key").on(
+      table.attendanceDateId,
+      table.classId,
+      table.category,
+    ),
+    index("attendance_extra_counts_class_idx").on(table.classId),
+  ],
+);
+
+export const weeklyAttendanceExtraCounts = pgTable(
+  "weekly_attendance_extra_counts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    attendanceDateId: uuid("attendance_date_id")
+      .notNull()
+      .references(() => attendanceDates.id, { onDelete: "cascade" }),
+    category: attendanceExtraCategoryEnum("category").notNull(),
+    headcount: integer("headcount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("weekly_attendance_extra_counts_date_category_key").on(
+      table.attendanceDateId,
+      table.category,
+    ),
   ],
 );
