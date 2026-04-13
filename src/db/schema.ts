@@ -103,6 +103,7 @@ export const classes = pgTable(
       .notNull()
       .references(() => schoolYears.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 64 }).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
     gradeCode: gradeCodeEnum("grade_code").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

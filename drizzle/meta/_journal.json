@@ -57,6 +57,13 @@
       "when": 1775963357988,
       "tag": "0007_broken_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775974857076,
+      "tag": "0008_shocking_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }

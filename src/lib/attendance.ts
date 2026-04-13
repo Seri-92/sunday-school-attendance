@@ -15,6 +15,7 @@ import {
   weeklyAttendanceExtraCounts,
 } from "@/db/schema";
 import { shouldFilterClassesByAssignment } from "@/lib/class-access";
+import { sortClassesByDisplayOrder } from "@/lib/class-order";
 import { buildStudentName, buildStudentNameKana } from "@/lib/students";
 export {
   attendanceStatusLabels,
@@ -97,18 +98,21 @@ export async function getActiveSchoolYear() {
 
 export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYearId: string) {
   if (!shouldFilterClassesByAssignment(teacher.role)) {
-    return db
+    const classList = await db
       .select()
       .from(classes)
       .where(eq(classes.schoolYearId, schoolYearId))
-      .orderBy(asc(classes.name));
+      .orderBy(asc(classes.sortOrder), asc(classes.name));
+
+    return sortClassesByDisplayOrder(classList);
   }
 
-  return db
+  const classList = await db
     .select({
       id: classes.id,
       schoolYearId: classes.schoolYearId,
       name: classes.name,
+      sortOrder: classes.sortOrder,
       gradeCode: classes.gradeCode,
       createdAt: classes.createdAt,
       updatedAt: classes.updatedAt,
@@ -124,7 +128,9 @@ export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYea
         eq(classTeacherAssignments.teacherId, teacher.id),
       ),
     )
-    .orderBy(asc(classes.name));
+    .orderBy(asc(classes.sortOrder), asc(classes.name));
+
+  return sortClassesByDisplayOrder(classList);
 }
 
 export async function getAuthorizedClass(
@@ -137,6 +143,7 @@ export async function getAuthorizedClass(
       id: classes.id,
       schoolYearId: classes.schoolYearId,
       name: classes.name,
+      sortOrder: classes.sortOrder,
       gradeCode: classes.gradeCode,
       createdAt: classes.createdAt,
       updatedAt: classes.updatedAt,
