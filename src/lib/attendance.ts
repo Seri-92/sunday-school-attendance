@@ -12,6 +12,7 @@ import {
   studentClassAssignments,
   students,
   teachers,
+  type WeeklyAttendanceGroup,
   weeklyAttendanceExtraCounts,
 } from "@/db/schema";
 import { shouldFilterClassesByAssignment } from "@/lib/class-access";
@@ -269,10 +270,12 @@ export async function getClassAttendanceExtraCounts(
 export async function getWeeklyAttendanceExtraCounts(
   schoolYearId: string,
   date: string,
+  group: WeeklyAttendanceGroup,
 ) {
   return db
     .select({
       category: weeklyAttendanceExtraCounts.category,
+      group: weeklyAttendanceExtraCounts.group,
       headcount: weeklyAttendanceExtraCounts.headcount,
     })
     .from(weeklyAttendanceExtraCounts)
@@ -284,6 +287,7 @@ export async function getWeeklyAttendanceExtraCounts(
       and(
         eq(attendanceDates.schoolYearId, schoolYearId),
         eq(attendanceDates.date, date),
+        eq(weeklyAttendanceExtraCounts.group, group),
       ),
     );
 }

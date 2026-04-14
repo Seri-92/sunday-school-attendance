@@ -30,6 +30,10 @@ export const attendanceExtraCategoryValues = [
   "guardian",
   "junior_high_other",
 ] as const;
+export const weeklyAttendanceGroupValues = [
+  "elementary",
+  "junior_high",
+] as const;
 export const attendanceStatusValues = [
   "present",
   "absent",
@@ -39,6 +43,7 @@ export type TeacherRole = (typeof teacherRoleValues)[number];
 export type GradeCode = (typeof gradeCodeValues)[number];
 export type AssignmentType = (typeof assignmentTypeValues)[number];
 export type AttendanceExtraCategory = (typeof attendanceExtraCategoryValues)[number];
+export type WeeklyAttendanceGroup = (typeof weeklyAttendanceGroupValues)[number];
 export type AttendanceStatus = (typeof attendanceStatusValues)[number];
 
 export const teacherRoleEnum = pgEnum("teacher_role", teacherRoleValues);
@@ -50,6 +55,10 @@ export const assignmentTypeEnum = pgEnum(
 export const attendanceExtraCategoryEnum = pgEnum(
   "attendance_extra_category",
   attendanceExtraCategoryValues,
+);
+export const weeklyAttendanceGroupEnum = pgEnum(
+  "weekly_attendance_group",
+  weeklyAttendanceGroupValues,
 );
 
 export const teachers = pgTable(
@@ -279,6 +288,7 @@ export const weeklyAttendanceExtraCounts = pgTable(
     attendanceDateId: uuid("attendance_date_id")
       .notNull()
       .references(() => attendanceDates.id, { onDelete: "cascade" }),
+    group: weeklyAttendanceGroupEnum("group").notNull(),
     category: attendanceExtraCategoryEnum("category").notNull(),
     headcount: integer("headcount").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -291,6 +301,7 @@ export const weeklyAttendanceExtraCounts = pgTable(
   (table) => [
     uniqueIndex("weekly_attendance_extra_counts_date_category_key").on(
       table.attendanceDateId,
+      table.group,
       table.category,
     ),
   ],

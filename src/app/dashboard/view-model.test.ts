@@ -334,7 +334,9 @@ test("hasAttendanceDraftChanges ignores note whitespace but detects status chang
 });
 
 test("hasAttendanceExtraCountChanges only changes when the guardian count changes", () => {
-  const extraCountInput = buildGuardianAttendanceExtraInput(3);
+  const extraCountInput = buildGuardianAttendanceExtraInput({
+    existingCount: 3,
+  });
 
   assert.equal(
     hasAttendanceExtraCountChanges({

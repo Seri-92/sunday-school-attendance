@@ -1,4 +1,9 @@
-import type { AttendanceExtraCategory, GradeCode } from "@/db/schema";
+import type {
+  AttendanceExtraCategory,
+  GradeCode,
+  WeeklyAttendanceGroup,
+} from "@/db/schema";
+import { weeklyAttendanceGroupValues } from "@/db/schema";
 
 export const guardianAttendanceExtraCategory = "guardian" as const;
 export const guardianAttendanceExtraFieldName = "guardianCount" as const;
@@ -17,10 +22,22 @@ export type AttendanceExtraCountInput = {
   category: AttendanceExtraCategory;
   defaultValue: number;
   description: string;
+  group?: WeeklyAttendanceGroup;
   hasExistingValue: boolean;
   label: string;
   name: string;
 };
+
+export function getWeeklyAttendanceGroup(params: {
+  className: string;
+  gradeCode: GradeCode;
+}): WeeklyAttendanceGroup {
+  return params.className === juniorHighClassName ? "junior_high" : "elementary";
+}
+
+export function isWeeklyAttendanceGroup(value: string): value is WeeklyAttendanceGroup {
+  return weeklyAttendanceGroupValues.includes(value as WeeklyAttendanceGroup);
+}
 
 export function supportsJuniorHighOtherAttendanceExtra(params: {
   className: string;
@@ -29,15 +46,22 @@ export function supportsJuniorHighOtherAttendanceExtra(params: {
   return params.className === juniorHighClassName;
 }
 
-export function buildGuardianAttendanceExtraInput(
-  existingCount?: number | null,
-): AttendanceExtraCountInput {
+export function buildGuardianAttendanceExtraInput(params: {
+  existingCount?: number | null;
+  group?: WeeklyAttendanceGroup;
+}): AttendanceExtraCountInput {
+  const group = params.group ?? "elementary";
+  const isJuniorHigh = group === "junior_high";
+
   return {
     category: guardianAttendanceExtraCategory,
-    defaultValue: existingCount ?? 0,
-    description: "保護者の人数を記録します。",
-    hasExistingValue: existingCount !== null && existingCount !== undefined,
-    label: "保護者",
+    defaultValue: params.existingCount ?? 0,
+    description: isJuniorHigh
+      ? "中学科全体の保護者の人数を記録します。"
+      : "幼小科全体の保護者の人数を記録します。",
+    group,
+    hasExistingValue: params.existingCount !== null && params.existingCount !== undefined,
+    label: isJuniorHigh ? "中学科の保護者" : "幼小科の保護者",
     name: guardianAttendanceExtraFieldName,
   };
 }

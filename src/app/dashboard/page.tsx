@@ -21,7 +21,8 @@ import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import {
   createStudentAction,
   saveAttendanceAction,
-  saveWeeklyAttendanceExtraAction,
+  saveElementaryWeeklyAttendanceExtraAction,
+  saveJuniorHighWeeklyAttendanceExtraAction,
 } from "./actions";
 import {
   AttendanceDateSwitcher,
@@ -220,10 +221,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const classAttendanceExtraCounts = selectedClass
     ? await getClassAttendanceExtraCounts(selectedClass.id, activeSchoolYear.id, selectedDate)
     : [];
-  const weeklyAttendanceExtraCounts = await getWeeklyAttendanceExtraCounts(
-    activeSchoolYear.id,
-    selectedDate,
-  );
+  const elementaryWeeklyAttendanceExtraCounts = selectedClass
+    ? await getWeeklyAttendanceExtraCounts(
+        activeSchoolYear.id,
+        selectedDate,
+        "elementary",
+      )
+    : [];
+  const juniorHighWeeklyAttendanceExtraCounts = selectedClass
+    ? await getWeeklyAttendanceExtraCounts(
+        activeSchoolYear.id,
+        selectedDate,
+        "junior_high",
+      )
+    : [];
 
   const selectedDateRecords = new Map<string, SelectedDateRecord>(
     records
@@ -255,15 +266,23 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     selectedDateRecords,
     students,
   });
-  const guardianCountRecord = weeklyAttendanceExtraCounts.find(
+  const elementaryGuardianCountRecord = elementaryWeeklyAttendanceExtraCounts.find(
+    (record) => record.category === "guardian",
+  );
+  const juniorHighGuardianCountRecord = juniorHighWeeklyAttendanceExtraCounts.find(
     (record) => record.category === "guardian",
   );
   const juniorHighOtherCountRecord = classAttendanceExtraCounts.find(
     (record) => record.category === "junior_high_other",
   );
-  const guardianExtraCountInput = buildGuardianAttendanceExtraInput(
-    guardianCountRecord?.headcount,
-  );
+  const elementaryGuardianExtraCountInput = buildGuardianAttendanceExtraInput({
+    existingCount: elementaryGuardianCountRecord?.headcount,
+    group: "elementary",
+  });
+  const juniorHighGuardianExtraCountInput = buildGuardianAttendanceExtraInput({
+    existingCount: juniorHighGuardianCountRecord?.headcount,
+    group: "junior_high",
+  });
   const juniorHighOtherExtraCountInput = selectedClass
     ? buildJuniorHighOtherAttendanceExtraInput({
         className: selectedClass.name,
@@ -589,15 +608,26 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             ) : null}
 
             {selectedClass && currentTab !== "students" ? (
-              <WeeklyAttendanceExtraForm
-                classId={selectedClass.id}
-                currentTab={currentTab}
-                description={`生徒出席とは別に、${formatAttendanceDateLabel(selectedDate)} の保護者人数を記録します。`}
-                extraCountInput={guardianExtraCountInput}
-                saveWeeklyAttendanceExtraAction={saveWeeklyAttendanceExtraAction}
-                selectedDate={selectedDate}
-                title="週の補足情報"
-              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <WeeklyAttendanceExtraForm
+                  classId={selectedClass.id}
+                  currentTab={currentTab}
+                  description={`${formatAttendanceDateLabel(selectedDate)} の${elementaryGuardianExtraCountInput.label}人数を記録します。`}
+                  extraCountInput={elementaryGuardianExtraCountInput}
+                  saveWeeklyAttendanceExtraAction={saveElementaryWeeklyAttendanceExtraAction}
+                  selectedDate={selectedDate}
+                  title={`${elementaryGuardianExtraCountInput.label}人数`}
+                />
+                <WeeklyAttendanceExtraForm
+                  classId={selectedClass.id}
+                  currentTab={currentTab}
+                  description={`${formatAttendanceDateLabel(selectedDate)} の${juniorHighGuardianExtraCountInput.label}人数を記録します。`}
+                  extraCountInput={juniorHighGuardianExtraCountInput}
+                  saveWeeklyAttendanceExtraAction={saveJuniorHighWeeklyAttendanceExtraAction}
+                  selectedDate={selectedDate}
+                  title={`${juniorHighGuardianExtraCountInput.label}人数`}
+                />
+              </div>
             ) : null}
           </div>
         </section>

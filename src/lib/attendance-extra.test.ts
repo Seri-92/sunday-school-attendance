@@ -3,28 +3,62 @@ import test from "node:test";
 import {
   buildGuardianAttendanceExtraInput,
   buildJuniorHighOtherAttendanceExtraInput,
+  getWeeklyAttendanceGroup,
+  isWeeklyAttendanceGroup,
   parseAttendanceExtraHeadcount,
   supportsJuniorHighOtherAttendanceExtra,
 } from "./attendance-extra";
 
-test("buildGuardianAttendanceExtraInput is always available and defaults to 0", () => {
-  assert.deepEqual(buildGuardianAttendanceExtraInput(), {
+test("buildGuardianAttendanceExtraInput builds elementary group input by default", () => {
+  assert.deepEqual(buildGuardianAttendanceExtraInput({}), {
     category: "guardian",
     defaultValue: 0,
-    description: "保護者の人数を記録します。",
+    description: "幼小科全体の保護者の人数を記録します。",
+    group: "elementary",
     hasExistingValue: false,
-    label: "保護者",
+    label: "幼小科の保護者",
     name: "guardianCount",
   });
 
-  assert.deepEqual(buildGuardianAttendanceExtraInput(4), {
-    category: "guardian",
-    defaultValue: 4,
-    description: "保護者の人数を記録します。",
-    hasExistingValue: true,
-    label: "保護者",
-    name: "guardianCount",
-  });
+  assert.deepEqual(
+    buildGuardianAttendanceExtraInput({
+      existingCount: 4,
+      group: "junior_high",
+    }),
+    {
+      category: "guardian",
+      defaultValue: 4,
+      description: "中学科全体の保護者の人数を記録します。",
+      group: "junior_high",
+      hasExistingValue: true,
+      label: "中学科の保護者",
+      name: "guardianCount",
+    },
+  );
+});
+
+test("getWeeklyAttendanceGroup treats the junior high class separately", () => {
+  assert.equal(
+    getWeeklyAttendanceGroup({
+      className: "中学科",
+      gradeCode: "junior_high_1",
+    }),
+    "junior_high",
+  );
+
+  assert.equal(
+    getWeeklyAttendanceGroup({
+      className: "5・6年",
+      gradeCode: "elementary_5",
+    }),
+    "elementary",
+  );
+});
+
+test("isWeeklyAttendanceGroup accepts only supported weekly groups", () => {
+  assert.equal(isWeeklyAttendanceGroup("elementary"), true);
+  assert.equal(isWeeklyAttendanceGroup("junior_high"), true);
+  assert.equal(isWeeklyAttendanceGroup("guardian"), false);
 });
 
 test("supportsJuniorHighOtherAttendanceExtra returns true only for the junior high class", () => {

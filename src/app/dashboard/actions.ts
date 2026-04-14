@@ -26,6 +26,7 @@ import {
 import {
   guardianAttendanceExtraFieldName,
   guardianAttendanceExtraCategory,
+  isWeeklyAttendanceGroup,
   juniorHighOtherAttendanceExtraCategory,
   juniorHighOtherAttendanceExtraFieldName,
   parseAttendanceExtraHeadcount,
@@ -352,8 +353,11 @@ export async function saveAttendanceAction(formData: FormData) {
   );
 }
 
-export async function saveWeeklyAttendanceExtraAction(formData: FormData) {
-  await requireLinkedTeacherForAction();
+export async function saveWeeklyAttendanceExtraAction(
+  group: "elementary" | "junior_high",
+  formData: FormData,
+) {
+  const teacher = await requireLinkedTeacherForAction();
   const activeSchoolYear = await getActiveSchoolYear();
   const tab = String(formData.get("tab") ?? "week");
   const classId = String(formData.get("classId") ?? "");
@@ -366,7 +370,28 @@ export async function saveWeeklyAttendanceExtraAction(formData: FormData) {
     redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
   }
 
+  const classRecord = await getAuthorizedClass(teacher, activeSchoolYear.id, classId);
+
+  if (!classRecord) {
+    redirect(
+      buildDashboardUrl({
+        error: "対象クラスへのアクセス権がありません。",
+      }),
+    );
+  }
+
   const validAttendanceDates = getSundaysInRange(activeSchoolYear.startDate, activeSchoolYear.endDate);
+
+  if (!isWeeklyAttendanceGroup(group)) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId: classRecord.id,
+        date,
+        error: "週の補足情報の対象が不正です。",
+      }),
+    );
+  }
 
   if (!isAttendanceDateInScope(date, validAttendanceDates)) {
     redirect(
@@ -400,12 +425,14 @@ export async function saveWeeklyAttendanceExtraAction(formData: FormData) {
       .insert(weeklyAttendanceExtraCounts)
       .values({
         attendanceDateId: attendanceDate.id,
+        group,
         category: guardianAttendanceExtraCategory,
         headcount: guardianHeadcount,
       })
       .onConflictDoUpdate({
         target: [
           weeklyAttendanceExtraCounts.attendanceDateId,
+          weeklyAttendanceExtraCounts.group,
           weeklyAttendanceExtraCounts.category,
         ],
         set: {
@@ -419,9 +446,17 @@ export async function saveWeeklyAttendanceExtraAction(formData: FormData) {
   redirect(
     buildDashboardUrl({
       tab,
-      classId,
+      classId: classRecord.id,
       date,
       notice: `${formatAttendanceDateLabel(date)} の保護者人数を保存しました。`,
     }),
   );
+}
+
+export async function saveElementaryWeeklyAttendanceExtraAction(formData: FormData) {
+  return saveWeeklyAttendanceExtraAction("elementary", formData);
+}
+
+export async function saveJuniorHighWeeklyAttendanceExtraAction(formData: FormData) {
+  return saveWeeklyAttendanceExtraAction("junior_high", formData);
 }
