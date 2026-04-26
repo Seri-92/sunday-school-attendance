@@ -132,7 +132,7 @@ export function buildDashboardHref(params: {
     searchParams.set("classId", params.classId);
   }
 
-  if (params.date) {
+  if (params.date && params.tab !== "week") {
     searchParams.set("date", params.date);
   }
 

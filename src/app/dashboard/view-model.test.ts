@@ -427,3 +427,14 @@ test("buildDashboardHref keeps only provided dashboard params", () => {
     "/dashboard?classId=class-1",
   );
 });
+
+test("buildDashboardHref omits date for week tab", () => {
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      date: "2026-04-05",
+      tab: "week",
+    }),
+    "/dashboard?tab=week&classId=class-1",
+  );
+});
