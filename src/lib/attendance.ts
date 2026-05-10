@@ -19,6 +19,11 @@ import { shouldFilterClassesByAssignment } from "@/lib/class-access";
 import { sortClassesByDisplayOrder } from "@/lib/class-order";
 import { buildStudentName, buildStudentNameKana } from "@/lib/students";
 export {
+  getDefaultAttendanceDate,
+  getIsoDateInJapan,
+  getSundaysInRange,
+} from "@/lib/attendance-date";
+export {
   attendanceStatusLabels,
   gradeLabels,
   isAttendanceStatus,
@@ -32,39 +37,8 @@ export type LinkedTeacher = TeacherRecord & {
   role: "admin" | "teacher";
 };
 
-function toIsoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 function isValidIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-export function getSundaysInRange(startDate: string, endDate: string) {
-  const dates: string[] = [];
-  const current = new Date(`${startDate}T00:00:00+09:00`);
-  const end = new Date(`${endDate}T00:00:00+09:00`);
-  const offset = (7 - current.getDay()) % 7;
-
-  current.setDate(current.getDate() + offset);
-
-  while (current <= end) {
-    dates.push(toIsoDate(current));
-    current.setDate(current.getDate() + 7);
-  }
-
-  return dates;
-}
-
-export function getDefaultAttendanceDate(sundays: string[]) {
-  const today = toIsoDate(new Date());
-  const latestPastOrToday = [...sundays].reverse().find((date) => date <= today);
-
-  return latestPastOrToday ?? sundays[0] ?? "";
 }
 
 export function isAttendanceDateInScope(date: string, sundays: string[]) {

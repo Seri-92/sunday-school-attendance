@@ -36,9 +36,10 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildDashboardHref,
-  buildHistoryByDate,
+  buildWeeklyAttendanceHistory,
   getAttendanceStatusTone,
   getAttendanceCounts,
+  resolveDashboardSelectedDate,
   sortStudentsByGrade,
   type DashboardTab,
   type SelectedDateRecord,
@@ -201,9 +202,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     availableClasses.find((classItem) => classItem.id === requestedClassId) ??
     availableClasses[0] ??
     null;
-  const selectedDate = sundays.includes(getSingleValue(params.date) ?? "")
-    ? (getSingleValue(params.date) as string)
-    : getDefaultAttendanceDate(sundays);
+  const selectedDate = resolveDashboardSelectedDate({
+    currentTab,
+    defaultDate: getDefaultAttendanceDate(sundays),
+    requestedDate: getSingleValue(params.date),
+    sundays,
+  });
 
   const students = selectedClass
     ? await getClassStudents(selectedClass.id, activeSchoolYear.id)
@@ -248,8 +252,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ]),
   );
 
-  const historyByDate = buildHistoryByDate({
+  const weeklyAttendanceHistory = buildWeeklyAttendanceHistory({
     records,
+    students,
     sundays,
   });
   const { absentCount, enteredCount, presentCount, unenteredCount } = getAttendanceCounts({
@@ -484,10 +489,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold text-zinc-950">
-                        {activeSchoolYear.label} の日曜一覧
+                        {activeSchoolYear.label} の出席者一覧
                       </h2>
                       <p className="mt-1 text-sm text-zinc-600">
-                        入力済み件数と週ごとの状態を確認できます。
+                        週ごとに、誰が出席したかを確認できます。
                       </p>
                     </div>
                     <div className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700">
@@ -496,16 +501,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </div>
 
                   <div className="mt-5 space-y-3">
-                    {sundays.map((date) => {
-                      const summary = historyByDate.get(date)!;
-                      const isSelected = date === selectedDate;
+                    {weeklyAttendanceHistory.map((week) => {
+                      const isSelected = week.date === selectedDate;
                       const state =
-                        summary.enteredCount > 0 ? ("present" as const) : ("unentered" as const);
+                        week.enteredCount > 0 ? ("present" as const) : ("unentered" as const);
 
                       return (
                         <Link
-                          key={date}
-                          className={`block rounded-2xl border p-4 transition ${
+                          key={week.date}
+                          className={`block rounded-[1.5rem] border p-4 transition sm:p-5 ${
                             isSelected
                               ? "border-emerald-300 bg-emerald-50"
                               : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white"
@@ -513,31 +517,56 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           href={buildDashboardHref({
                             tab: "attendance",
                             classId: selectedClass.id,
-                            date,
+                            date: week.date,
                           })}
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="font-medium text-zinc-950">
-                                {formatAttendanceDateLabel(date)}
-                              </p>
-                              <p className="mt-1 text-sm text-zinc-600">
-                                出席 {summary.present} 名 / 欠席 {summary.absent} 名
-                              </p>
+                          <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-lg font-semibold text-zinc-950">
+                                  {formatAttendanceDateLabel(week.date)}
+                                </p>
+                                <p className="mt-1 text-sm text-zinc-600">
+                                  出席 {week.presentCount} 名 / 欠席 {week.absentCount} 名 / 未入力{" "}
+                                  {week.unenteredCount} 名
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${getAttendanceStatusTone(
+                                    state,
+                                  ).badgeClassName}`}
+                                >
+                                  {week.enteredCount > 0
+                                    ? `${week.enteredCount}/${students.length} 名入力`
+                                    : "未入力"}
+                                </span>
+                                {isSelected ? (
+                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-900">
+                                    表示中
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span
-                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getAttendanceStatusTone(
-                                  state,
-                                ).badgeClassName}`}
-                              >
-                                {summary.enteredCount > 0
-                                  ? `${summary.enteredCount}/${students.length} 名入力`
-                                  : "未入力"}
-                              </span>
-                              {isSelected ? (
-                                <span className="text-xs font-medium text-emerald-800">表示中</span>
-                              ) : null}
+
+                            <div>
+                              <p className="text-sm font-medium text-zinc-700">出席者</p>
+                              {week.presentStudents.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {week.presentStudents.map((student) => (
+                                    <span
+                                      key={student.studentId}
+                                      className="rounded-full border border-teal-200 bg-white px-4 py-2 text-base font-semibold text-teal-950 shadow-sm"
+                                    >
+                                      {student.studentName}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-base font-medium text-zinc-600">
+                                  出席者なし
+                                </p>
+                              )}
                             </div>
                           </div>
                         </Link>
@@ -606,7 +635,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </article>
               </>
             ) : null}
-
             {selectedClass && currentTab !== "students" ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 <WeeklyAttendanceExtraForm

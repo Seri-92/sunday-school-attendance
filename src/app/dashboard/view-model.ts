@@ -75,6 +75,20 @@ export type AttendanceSummaryBadge = {
   tone: AttendanceStatusTone;
 };
 
+export type WeeklyAttendancePresentStudent = {
+  studentId: string;
+  studentName: string;
+};
+
+export type WeeklyAttendanceHistoryItem = {
+  absentCount: number;
+  date: string;
+  enteredCount: number;
+  presentCount: number;
+  presentStudents: WeeklyAttendancePresentStudent[];
+  unenteredCount: number;
+};
+
 function normalizeDraftNote(note: string) {
   return note.trim();
 }
@@ -139,6 +153,23 @@ export function buildDashboardHref(params: {
   const query = searchParams.toString();
 
   return query ? `/dashboard?${query}` : "/dashboard";
+}
+
+export function resolveDashboardSelectedDate(params: {
+  currentTab: DashboardTab;
+  defaultDate: string;
+  requestedDate?: string;
+  sundays: string[];
+}) {
+  if (
+    params.currentTab !== "week" &&
+    params.requestedDate &&
+    params.sundays.includes(params.requestedDate)
+  ) {
+    return params.requestedDate;
+  }
+
+  return params.defaultDate;
 }
 
 export function getAttendanceCounts(params: {
@@ -334,4 +365,63 @@ export function buildHistoryByDate(params: {
   }
 
   return historyByDate;
+}
+
+export function buildWeeklyAttendanceHistory(params: {
+  records: AttendanceHistoryRecord[];
+  students: AttendanceEditorStudent[];
+  sundays: string[];
+}): WeeklyAttendanceHistoryItem[] {
+  const sortedStudents = sortStudentsByGrade(params.students);
+  const knownStudentIds = new Set(sortedStudents.map((student) => student.studentId));
+  const statusByDate = new Map<string, Map<string, AttendanceStatus>>();
+
+  for (const sunday of params.sundays) {
+    statusByDate.set(sunday, new Map());
+  }
+
+  for (const record of params.records) {
+    const dateStatuses = statusByDate.get(record.attendanceDate);
+
+    if (!dateStatuses || !knownStudentIds.has(record.studentId)) {
+      continue;
+    }
+
+    dateStatuses.set(record.studentId, normalizeAttendanceStatus(record.status));
+  }
+
+  return params.sundays.map((date) => {
+    const dateStatuses = statusByDate.get(date) ?? new Map<string, AttendanceStatus>();
+    const presentStudents: WeeklyAttendancePresentStudent[] = [];
+    let absentCount = 0;
+
+    for (const student of sortedStudents) {
+      const status = dateStatuses.get(student.studentId);
+
+      if (!status) {
+        continue;
+      }
+
+      if (status === "present") {
+        presentStudents.push({
+          studentId: student.studentId,
+          studentName: student.studentName,
+        });
+      } else {
+        absentCount += 1;
+      }
+    }
+
+    const presentCount = presentStudents.length;
+    const enteredCount = presentCount + absentCount;
+
+    return {
+      absentCount,
+      date,
+      enteredCount,
+      presentCount,
+      presentStudents,
+      unenteredCount: Math.max(sortedStudents.length - enteredCount, 0),
+    };
+  });
 }

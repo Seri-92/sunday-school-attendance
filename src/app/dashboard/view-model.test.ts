@@ -10,11 +10,13 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildHistoryByDate,
+  buildWeeklyAttendanceHistory,
   getAttendanceStatusTone,
   getAttendanceCounts,
   hasAttendanceDraftChanges,
   hasAttendanceExtraCountChanges,
   isWeekAttendanceReadonly,
+  resolveDashboardSelectedDate,
   sortStudentsByGrade,
   type SelectedDateRecord,
 } from "./view-model";
@@ -410,6 +412,98 @@ test("buildHistoryByDate aggregates only in-range dates and normalizes legacy ab
   assert.equal(history.has("2026-05-03"), false);
 });
 
+test("buildWeeklyAttendanceHistory returns readable weekly present-student summaries", () => {
+  const history = buildWeeklyAttendanceHistory({
+    records: [
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "present",
+        studentId: "student-3",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "present",
+        studentId: "student-1",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: "連絡あり",
+        status: "excused",
+        studentId: "student-2",
+      },
+      {
+        attendanceDate: "2026-05-03",
+        note: null,
+        status: "present",
+        studentId: "student-1",
+      },
+    ],
+    students: [
+      {
+        firstName: "次郎",
+        firstNameKana: "じろう",
+        gradeCode: "junior_high_1",
+        lastName: "日曜",
+        lastNameKana: "にちよう",
+        studentId: "student-3",
+        studentName: "日曜 次郎",
+        studentNameKana: "にちよう じろう",
+      },
+      {
+        firstName: "花子",
+        firstNameKana: "はなこ",
+        gradeCode: "elementary_1",
+        lastName: "日曜",
+        lastNameKana: "にちよう",
+        studentId: "student-2",
+        studentName: "日曜 花子",
+        studentNameKana: "にちよう はなこ",
+      },
+      {
+        firstName: "太郎",
+        firstNameKana: "たろう",
+        gradeCode: "elementary_1",
+        lastName: "日曜",
+        lastNameKana: "にちよう",
+        studentId: "student-1",
+        studentName: "日曜 太郎",
+        studentNameKana: "にちよう たろう",
+      },
+    ],
+    sundays: ["2026-04-05", "2026-04-12"],
+  });
+
+  assert.deepEqual(history, [
+    {
+      absentCount: 1,
+      date: "2026-04-05",
+      enteredCount: 3,
+      presentCount: 2,
+      presentStudents: [
+        {
+          studentId: "student-1",
+          studentName: "日曜 太郎",
+        },
+        {
+          studentId: "student-3",
+          studentName: "日曜 次郎",
+        },
+      ],
+      unenteredCount: 0,
+    },
+    {
+      absentCount: 0,
+      date: "2026-04-12",
+      enteredCount: 0,
+      presentCount: 0,
+      presentStudents: [],
+      unenteredCount: 3,
+    },
+  ]);
+});
+
 test("buildDashboardHref keeps only provided dashboard params", () => {
   assert.equal(
     buildDashboardHref({
@@ -436,5 +530,29 @@ test("buildDashboardHref omits date for week tab", () => {
       tab: "week",
     }),
     "/dashboard?tab=week&classId=class-1",
+  );
+});
+
+test("resolveDashboardSelectedDate ignores date query on week tab", () => {
+  assert.equal(
+    resolveDashboardSelectedDate({
+      currentTab: "week",
+      defaultDate: "2026-05-10",
+      requestedDate: "2026-04-05",
+      sundays: ["2026-04-05", "2026-05-10"],
+    }),
+    "2026-05-10",
+  );
+});
+
+test("resolveDashboardSelectedDate keeps valid date query outside week tab", () => {
+  assert.equal(
+    resolveDashboardSelectedDate({
+      currentTab: "attendance",
+      defaultDate: "2026-05-10",
+      requestedDate: "2026-04-05",
+      sundays: ["2026-04-05", "2026-05-10"],
+    }),
+    "2026-04-05",
   );
 });
