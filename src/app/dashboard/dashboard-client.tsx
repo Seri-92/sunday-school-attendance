@@ -11,6 +11,7 @@ import {
   getAttendanceStatusTone,
   hasAttendanceDraftChanges,
   hasAttendanceExtraCountChanges,
+  isAttendanceEditorReadonly,
   isWeekAttendanceReadonly,
   type AttendanceDraftState,
   type AttendanceEditorItem,
@@ -188,7 +189,7 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
     props.extraCountInput ? String(props.extraCountInput.defaultValue) : "",
   );
   const hasExistingRecords = props.items.some((item) => item.hasExistingRecord);
-  const isReadonly = isWeekAttendanceReadonly({
+  const isReadonly = isAttendanceEditorReadonly({
     currentTab: props.currentTab,
     hasExistingRecords,
     isEditingAll,
@@ -249,7 +250,6 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
             ) : null}
             {props.items.map((item) => {
               const currentValue = draftState[item.studentId];
-              const currentTone = getAttendanceStatusTone(currentValue.status);
 
               return (
                 <div key={item.studentId}>

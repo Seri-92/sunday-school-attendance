@@ -289,6 +289,18 @@ export function isWeekAttendanceReadonly(params: {
   return params.currentTab === "week" && params.hasExistingRecords && !params.isEditingAll;
 }
 
+export function isAttendanceEditorReadonly(params: {
+  currentTab: DashboardTab;
+  hasExistingRecords: boolean;
+  isEditingAll: boolean;
+}) {
+  return (
+    (params.currentTab === "week" || params.currentTab === "attendance") &&
+    params.hasExistingRecords &&
+    !params.isEditingAll
+  );
+}
+
 export function hasAttendanceDraftChanges(params: {
   draftState: AttendanceDraftState;
   initialState: AttendanceDraftState;
@@ -424,4 +436,16 @@ export function buildWeeklyAttendanceHistory(params: {
       unenteredCount: Math.max(sortedStudents.length - enteredCount, 0),
     };
   });
+}
+
+export function getWeeklyAttendanceHistorySummaryLabel(
+  week: Pick<WeeklyAttendanceHistoryItem, "absentCount" | "presentCount">,
+) {
+  return `出席 ${week.presentCount} 名 / 欠席 ${week.absentCount} 名`;
+}
+
+export function getWeeklyAttendanceHistoryInputBadgeLabel(
+  week: Pick<WeeklyAttendanceHistoryItem, "enteredCount">,
+) {
+  return week.enteredCount > 0 ? `${week.enteredCount} 名入力` : "入力なし";
 }

@@ -11,10 +11,13 @@ import {
   buildAttendanceSummaryBadges,
   buildHistoryByDate,
   buildWeeklyAttendanceHistory,
+  getWeeklyAttendanceHistoryInputBadgeLabel,
+  getWeeklyAttendanceHistorySummaryLabel,
   getAttendanceStatusTone,
   getAttendanceCounts,
   hasAttendanceDraftChanges,
   hasAttendanceExtraCountChanges,
+  isAttendanceEditorReadonly,
   isWeekAttendanceReadonly,
   resolveDashboardSelectedDate,
   sortStudentsByGrade,
@@ -288,6 +291,44 @@ test("isWeekAttendanceReadonly only locks the week tab until full edit mode star
   );
 });
 
+test("isAttendanceEditorReadonly locks entered week and attendance tabs until full edit mode starts", () => {
+  assert.equal(
+    isAttendanceEditorReadonly({
+      currentTab: "attendance",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    true,
+  );
+
+  assert.equal(
+    isAttendanceEditorReadonly({
+      currentTab: "attendance",
+      hasExistingRecords: true,
+      isEditingAll: true,
+    }),
+    false,
+  );
+
+  assert.equal(
+    isAttendanceEditorReadonly({
+      currentTab: "attendance",
+      hasExistingRecords: false,
+      isEditingAll: false,
+    }),
+    false,
+  );
+
+  assert.equal(
+    isAttendanceEditorReadonly({
+      currentTab: "students",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    false,
+  );
+});
+
 test("hasAttendanceDraftChanges ignores note whitespace but detects status changes", () => {
   const initialState = {
     "student-1": {
@@ -502,6 +543,26 @@ test("buildWeeklyAttendanceHistory returns readable weekly present-student summa
       unenteredCount: 3,
     },
   ]);
+});
+
+test("weekly attendance history labels omit unentered headcounts and student-count denominators", () => {
+  const week = {
+    absentCount: 2,
+    enteredCount: 7,
+    presentCount: 5,
+  };
+
+  assert.equal(
+    getWeeklyAttendanceHistorySummaryLabel(week),
+    "出席 5 名 / 欠席 2 名",
+  );
+  assert.equal(getWeeklyAttendanceHistoryInputBadgeLabel(week), "7 名入力");
+  assert.equal(
+    getWeeklyAttendanceHistoryInputBadgeLabel({
+      enteredCount: 0,
+    }),
+    "入力なし",
+  );
 });
 
 test("buildDashboardHref keeps only provided dashboard params", () => {

@@ -37,6 +37,8 @@ import {
   buildAttendanceSummaryBadges,
   buildDashboardHref,
   buildWeeklyAttendanceHistory,
+  getWeeklyAttendanceHistoryInputBadgeLabel,
+  getWeeklyAttendanceHistorySummaryLabel,
   getAttendanceStatusTone,
   getAttendanceCounts,
   resolveDashboardSelectedDate,
@@ -527,8 +529,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                                   {formatAttendanceDateLabel(week.date)}
                                 </p>
                                 <p className="mt-1 text-sm text-zinc-600">
-                                  出席 {week.presentCount} 名 / 欠席 {week.absentCount} 名 / 未入力{" "}
-                                  {week.unenteredCount} 名
+                                  {getWeeklyAttendanceHistorySummaryLabel(week)}
                                 </p>
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -537,9 +538,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                                     state,
                                   ).badgeClassName}`}
                                 >
-                                  {week.enteredCount > 0
-                                    ? `${week.enteredCount}/${students.length} 名入力`
-                                    : "未入力"}
+                                  {getWeeklyAttendanceHistoryInputBadgeLabel(week)}
                                 </span>
                                 {isSelected ? (
                                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-900">
