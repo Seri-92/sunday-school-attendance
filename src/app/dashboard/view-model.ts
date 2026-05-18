@@ -89,6 +89,12 @@ export type WeeklyAttendanceHistoryItem = {
   unenteredCount: number;
 };
 
+export type StudentAttendanceHistoryItem = {
+  date: string;
+  note: string;
+  status: AttendanceStatus | "unentered";
+};
+
 function normalizeDraftNote(note: string) {
   return note.trim();
 }
@@ -135,6 +141,7 @@ export function buildDashboardHref(params: {
   tab?: DashboardTab;
   classId?: string;
   date?: string;
+  studentId?: string;
 }) {
   const searchParams = new URLSearchParams();
 
@@ -148,6 +155,10 @@ export function buildDashboardHref(params: {
 
   if (params.date && params.tab !== "week") {
     searchParams.set("date", params.date);
+  }
+
+  if (params.studentId) {
+    searchParams.set("studentId", params.studentId);
   }
 
   const query = searchParams.toString();
@@ -434,6 +445,36 @@ export function buildWeeklyAttendanceHistory(params: {
       presentCount,
       presentStudents,
       unenteredCount: Math.max(sortedStudents.length - enteredCount, 0),
+    };
+  });
+}
+
+export function buildStudentAttendanceHistory(params: {
+  records: AttendanceHistoryRecord[];
+  studentId: string;
+  sundays: string[];
+}): StudentAttendanceHistoryItem[] {
+  const recordsByDate = new Map(
+    params.records
+      .filter((record) => record.studentId === params.studentId)
+      .map((record) => [record.attendanceDate, record]),
+  );
+
+  return params.sundays.map((date) => {
+    const record = recordsByDate.get(date);
+
+    if (!record) {
+      return {
+        date,
+        note: "",
+        status: "unentered",
+      };
+    }
+
+    return {
+      date,
+      note: record.note ?? "",
+      status: normalizeAttendanceStatus(record.status),
     };
   });
 }

@@ -36,6 +36,7 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildDashboardHref,
+  buildStudentAttendanceHistory,
   buildWeeklyAttendanceHistory,
   getWeeklyAttendanceHistoryInputBadgeLabel,
   getWeeklyAttendanceHistorySummaryLabel,
@@ -56,6 +57,7 @@ type DashboardPageProps = {
     date?: string | string[];
     notice?: string | string[];
     error?: string | string[];
+    studentId?: string | string[];
   }>;
 };
 
@@ -69,6 +71,17 @@ function getDashboardTab(value: string | undefined): DashboardTab {
   }
 
   return "week";
+}
+
+function getStudentHistoryStatusLabel(status: "present" | "absent" | "unentered") {
+  switch (status) {
+    case "present":
+      return "出席";
+    case "absent":
+      return "欠席";
+    default:
+      return "未入力";
+  }
 }
 
 function renderClassSwitcher(params: {
@@ -215,6 +228,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     ? await getClassStudents(selectedClass.id, activeSchoolYear.id)
     : [];
   const studentsForTab = sortStudentsByGrade(students);
+  const requestedStudentId = getSingleValue(params.studentId);
+  const selectedStudent =
+    currentTab === "students" && requestedStudentId
+      ? studentsForTab.find((student) => student.studentId === requestedStudentId) ?? null
+      : null;
   const studentIds = students.map((student) => student.studentId);
   const records = selectedClass
     ? await getClassAttendanceRecords(
@@ -308,6 +326,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     label: formatAttendanceDateLabel(date),
     value: date,
   }));
+  const selectedStudentAttendanceHistory = selectedStudent
+    ? buildStudentAttendanceHistory({
+        records,
+        studentId: selectedStudent.studentId,
+        sundays,
+      })
+    : [];
+  const selectedStudentAttendanceCounts = selectedStudent
+    ? {
+        absent: selectedStudentAttendanceHistory.filter((item) => item.status === "absent")
+          .length,
+        present: selectedStudentAttendanceHistory.filter((item) => item.status === "present")
+          .length,
+        unentered: selectedStudentAttendanceHistory.filter(
+          (item) => item.status === "unentered",
+        ).length,
+      }
+    : null;
 
   const tabs: DashboardTab[] = ["week", "attendance", "students"];
   return (
@@ -578,60 +614,174 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
             {selectedClass && currentTab === "students" ? (
               <>
-                <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">
-                        Students
-                      </p>
-                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
-                        生徒一覧
-                      </h2>
-                      <p className="mt-2 text-sm text-zinc-600">
-                        出席操作から切り離し、生徒の確認と登録に集中できるようにしました。
-                      </p>
-                    </div>
-                    <div className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700">
-                      {students.length} 名
-                    </div>
-                  </div>
-
-                  {students.length > 0 ? (
-                    <div className="mt-6 grid gap-3 md:grid-cols-2">
-                      {studentsForTab.map((student) => (
-                        <article
-                          key={student.studentId}
-                          className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
-                        >
+                {selectedStudent && selectedStudentAttendanceCounts ? (
+                  <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">
+                          Student
+                        </p>
+                        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+                          出席履歴
+                        </h2>
+                        <div className="mt-3">
                           <StudentName
-                            firstName={student.firstName}
-                            firstNameKana={student.firstNameKana}
-                            lastName={student.lastName}
-                            lastNameKana={student.lastNameKana}
-                            nameClassName="text-base font-medium text-zinc-950"
+                            firstName={selectedStudent.firstName}
+                            firstNameKana={selectedStudent.firstNameKana}
+                            lastName={selectedStudent.lastName}
+                            lastNameKana={selectedStudent.lastNameKana}
+                            nameClassName="text-lg font-semibold text-zinc-950"
                           />
                           <p className="mt-1 text-sm text-zinc-600">
-                            {gradeLabels[student.gradeCode]}
+                            {gradeLabels[selectedStudent.gradeCode]}
                           </p>
-                        </article>
+                        </div>
+                      </div>
+                      <Link
+                        className="inline-flex rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+                        href={buildDashboardHref({
+                          tab: "students",
+                          classId: selectedClass.id,
+                        })}
+                      >
+                        生徒一覧へ戻る
+                      </Link>
+                    </div>
+
+                    <div className="mt-6 flex flex-wrap gap-2">
+                      {[
+                        {
+                          count: selectedStudentAttendanceCounts.present,
+                          label: "出席",
+                          status: "present" as const,
+                        },
+                        {
+                          count: selectedStudentAttendanceCounts.absent,
+                          label: "欠席",
+                          status: "absent" as const,
+                        },
+                        {
+                          count: selectedStudentAttendanceCounts.unentered,
+                          label: "未入力",
+                          status: "unentered" as const,
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className={`inline-flex min-w-[5.25rem] items-baseline justify-between gap-2 rounded-full border px-3 py-2 ${getAttendanceStatusTone(
+                            item.status,
+                          ).badgeClassName}`}
+                        >
+                          <span className="text-xs font-medium tracking-tight">{item.label}</span>
+                          <span className="text-base font-semibold tabular-nums">{item.count}</span>
+                        </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="mt-6 text-sm text-zinc-600">
-                      まだ生徒がいません。下のフォームから追加してください。
-                    </p>
-                  )}
-                </article>
 
-                <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
-                  <h2 className="text-lg font-semibold text-zinc-950">新しい生徒を登録する</h2>
-                  <StudentRegistrationForm
-                    classId={selectedClass.id}
-                    createStudentAction={createStudentAction}
-                    selectedDate={selectedDate}
-                    selectedGradeCode={selectedClass.gradeCode}
-                  />
-                </article>
+                    <div className="mt-6 space-y-3">
+                      {selectedStudentAttendanceHistory.map((item) => {
+                        const tone = getAttendanceStatusTone(item.status);
+
+                        return (
+                          <div
+                            key={item.date}
+                            className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-base font-semibold text-zinc-950">
+                                  {formatAttendanceDateLabel(item.date)}
+                                </p>
+                                <p className="mt-1 text-sm text-zinc-600">
+                                  {item.note || "メモなし"}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${tone.badgeClassName}`}
+                                >
+                                  {getStudentHistoryStatusLabel(item.status)}
+                                </span>
+                                <Link
+                                  className="inline-flex rounded-full border border-zinc-300 bg-white px-3 py-1 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+                                  href={buildDashboardHref({
+                                    tab: "attendance",
+                                    classId: selectedClass.id,
+                                    date: item.date,
+                                  })}
+                                >
+                                  週を確認
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ) : (
+                  <>
+                    <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700">
+                            Students
+                          </p>
+                          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+                            生徒一覧
+                          </h2>
+                          <p className="mt-2 text-sm text-zinc-600">
+                            生徒の名前を選ぶと、年度内の出席履歴を確認できます。
+                          </p>
+                        </div>
+                        <div className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700">
+                          {students.length} 名
+                        </div>
+                      </div>
+
+                      {students.length > 0 ? (
+                        <div className="mt-6 grid gap-3 md:grid-cols-2">
+                          {studentsForTab.map((student) => (
+                            <Link
+                              key={student.studentId}
+                              className="block rounded-2xl border border-zinc-200 bg-zinc-50 p-4 transition hover:border-zinc-300 hover:bg-white"
+                              href={buildDashboardHref({
+                                tab: "students",
+                                classId: selectedClass.id,
+                                studentId: student.studentId,
+                              })}
+                            >
+                              <StudentName
+                                firstName={student.firstName}
+                                firstNameKana={student.firstNameKana}
+                                lastName={student.lastName}
+                                lastNameKana={student.lastNameKana}
+                                nameClassName="text-base font-medium text-zinc-950"
+                              />
+                              <p className="mt-1 text-sm text-zinc-600">
+                                {gradeLabels[student.gradeCode]}
+                              </p>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-6 text-sm text-zinc-600">
+                          まだ生徒がいません。下のフォームから追加してください。
+                        </p>
+                      )}
+                    </article>
+
+                    <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+                      <h2 className="text-lg font-semibold text-zinc-950">新しい生徒を登録する</h2>
+                      <StudentRegistrationForm
+                        classId={selectedClass.id}
+                        createStudentAction={createStudentAction}
+                        selectedDate={selectedDate}
+                        selectedGradeCode={selectedClass.gradeCode}
+                      />
+                    </article>
+                  </>
+                )}
               </>
             ) : null}
             {selectedClass && currentTab !== "students" ? (

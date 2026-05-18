@@ -10,6 +10,7 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildHistoryByDate,
+  buildStudentAttendanceHistory,
   buildWeeklyAttendanceHistory,
   getWeeklyAttendanceHistoryInputBadgeLabel,
   getWeeklyAttendanceHistorySummaryLabel,
@@ -565,6 +566,51 @@ test("weekly attendance history labels omit unentered headcounts and student-cou
   );
 });
 
+test("buildStudentAttendanceHistory returns one student's records in sunday order", () => {
+  const history = buildStudentAttendanceHistory({
+    records: [
+      {
+        attendanceDate: "2026-04-05",
+        note: "少し遅刻",
+        status: "present",
+        studentId: "student-1",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: "別生徒のメモ",
+        status: "absent",
+        studentId: "student-2",
+      },
+      {
+        attendanceDate: "2026-04-19",
+        note: "連絡あり",
+        status: "absent",
+        studentId: "student-1",
+      },
+    ],
+    studentId: "student-1",
+    sundays: ["2026-04-05", "2026-04-12", "2026-04-19"],
+  });
+
+  assert.deepEqual(history, [
+    {
+      date: "2026-04-05",
+      note: "少し遅刻",
+      status: "present",
+    },
+    {
+      date: "2026-04-12",
+      note: "",
+      status: "unentered",
+    },
+    {
+      date: "2026-04-19",
+      note: "連絡あり",
+      status: "absent",
+    },
+  ]);
+});
+
 test("buildDashboardHref keeps only provided dashboard params", () => {
   assert.equal(
     buildDashboardHref({
@@ -580,6 +626,25 @@ test("buildDashboardHref keeps only provided dashboard params", () => {
       classId: "class-1",
     }),
     "/dashboard?classId=class-1",
+  );
+});
+
+test("buildDashboardHref includes studentId only when provided", () => {
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      studentId: "student-1",
+      tab: "students",
+    }),
+    "/dashboard?tab=students&classId=class-1&studentId=student-1",
+  );
+
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      tab: "students",
+    }),
+    "/dashboard?tab=students&classId=class-1",
   );
 });
 
