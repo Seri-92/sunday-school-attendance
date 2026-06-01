@@ -300,6 +300,14 @@ export function isWeekAttendanceReadonly(params: {
   return params.currentTab === "week" && params.hasExistingRecords && !params.isEditingAll;
 }
 
+export function canSubmitWeeklyAttendanceExtraForm(params: {
+  currentTab: DashboardTab;
+  hasExistingRecords: boolean;
+  isEditingAll: boolean;
+}) {
+  return !isWeekAttendanceReadonly(params);
+}
+
 export function isAttendanceEditorReadonly(params: {
   currentTab: DashboardTab;
   hasExistingRecords: boolean;

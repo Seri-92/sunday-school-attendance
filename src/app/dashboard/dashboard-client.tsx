@@ -8,11 +8,11 @@ import type { AttendanceExtraCountInput } from "@/lib/attendance-extra";
 import {
   buildAttendanceDraftInitialState,
   buildDashboardHref,
+  canSubmitWeeklyAttendanceExtraForm,
   getAttendanceStatusTone,
   hasAttendanceDraftChanges,
   hasAttendanceExtraCountChanges,
   isAttendanceEditorReadonly,
-  isWeekAttendanceReadonly,
   type AttendanceDraftState,
   type AttendanceEditorItem,
   type DashboardTab,
@@ -422,24 +422,19 @@ export function WeeklyAttendanceExtraForm(props: WeeklyAttendanceExtraFormProps)
     String(props.extraCountInput.defaultValue),
   );
   const [isEditing, setIsEditing] = useState(false);
-  const isReadonly = isWeekAttendanceReadonly({
+  const canSubmit = canSubmitWeeklyAttendanceExtraForm({
     currentTab: props.currentTab,
     hasExistingRecords: props.extraCountInput.hasExistingValue,
     isEditingAll: isEditing,
   });
+  const isReadonly = !canSubmit;
   const hasChanges = hasAttendanceExtraCountChanges({
     currentValue: extraCountValue,
     extraCountInput: props.extraCountInput,
   });
 
-  return (
-    <form action={props.saveWeeklyAttendanceExtraAction}>
-      <input type="hidden" name="tab" value={props.currentTab} />
-      <input type="hidden" name="classId" value={props.classId ?? ""} />
-      <input type="hidden" name="date" value={props.selectedDate} />
-      {isReadonly ? (
-        <input name={props.extraCountInput.name} type="hidden" value={extraCountValue} />
-      ) : null}
+  if (isReadonly) {
+    return (
       <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-4">
           <div>
@@ -449,55 +444,67 @@ export function WeeklyAttendanceExtraForm(props: WeeklyAttendanceExtraFormProps)
             <h2 className="mt-2 text-lg font-semibold text-zinc-950">{props.title}</h2>
             <p className="mt-1 text-sm text-zinc-600">{props.description}</p>
           </div>
-          {isReadonly ? (
-            <>
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-                <p className="text-sm text-zinc-600">{props.extraCountInput.label}の人数</p>
-                <p className="mt-2 text-2xl font-semibold text-zinc-950">{extraCountValue} 名</p>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <div />
-                <button
-                  className="rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
-                  onClick={() => {
-                    setIsEditing(true);
-                  }}
-                  type="button"
-                >
-                  訂正する
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <label className="block space-y-2 text-sm text-zinc-700">
-                <span className="font-medium">{props.extraCountInput.label}の人数</span>
-                <input
-                  className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-                  inputMode="numeric"
-                  min={0}
-                  name={props.extraCountInput.name}
-                  onChange={(event) => {
-                    setExtraCountValue(event.target.value);
-                  }}
-                  step={1}
-                  type="number"
-                  value={extraCountValue}
-                />
-              </label>
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-xs text-zinc-600">
-                  {hasChanges ? "未保存の変更があります。" : props.extraCountInput.description}
-                </p>
-                <button
-                  className="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
-                  type="submit"
-                >
-                  保存する
-                </button>
-              </div>
-            </>
-          )}
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+            <p className="text-sm text-zinc-600">{props.extraCountInput.label}の人数</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-950">{extraCountValue} 名</p>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div />
+            <button
+              className="rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+              onClick={() => {
+                setIsEditing(true);
+              }}
+              type="button"
+            >
+              訂正する
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <form action={props.saveWeeklyAttendanceExtraAction}>
+      <input type="hidden" name="tab" value={props.currentTab} />
+      <input type="hidden" name="classId" value={props.classId ?? ""} />
+      <input type="hidden" name="date" value={props.selectedDate} />
+      <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
+              Attendance Extra
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-zinc-950">{props.title}</h2>
+            <p className="mt-1 text-sm text-zinc-600">{props.description}</p>
+          </div>
+          <label className="block space-y-2 text-sm text-zinc-700">
+            <span className="font-medium">{props.extraCountInput.label}の人数</span>
+            <input
+              className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
+              inputMode="numeric"
+              min={0}
+              name={props.extraCountInput.name}
+              onChange={(event) => {
+                setExtraCountValue(event.target.value);
+              }}
+              step={1}
+              type="number"
+              value={extraCountValue}
+            />
+          </label>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs text-zinc-600">
+              {hasChanges ? "未保存の変更があります。" : props.extraCountInput.description}
+            </p>
+            <button
+              className="rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+              type="submit"
+            >
+              保存する
+            </button>
+          </div>
         </div>
       </section>
     </form>

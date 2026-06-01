@@ -12,6 +12,7 @@ import {
   buildHistoryByDate,
   buildStudentAttendanceHistory,
   buildWeeklyAttendanceHistory,
+  canSubmitWeeklyAttendanceExtraForm,
   getWeeklyAttendanceHistoryInputBadgeLabel,
   getWeeklyAttendanceHistorySummaryLabel,
   getAttendanceStatusTone,
@@ -289,6 +290,35 @@ test("isWeekAttendanceReadonly only locks the week tab until full edit mode star
       isEditingAll: false,
     }),
     false,
+  );
+});
+
+test("canSubmitWeeklyAttendanceExtraForm allows saving only after correction mode starts on the week tab", () => {
+  assert.equal(
+    canSubmitWeeklyAttendanceExtraForm({
+      currentTab: "week",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    false,
+  );
+
+  assert.equal(
+    canSubmitWeeklyAttendanceExtraForm({
+      currentTab: "week",
+      hasExistingRecords: true,
+      isEditingAll: true,
+    }),
+    true,
+  );
+
+  assert.equal(
+    canSubmitWeeklyAttendanceExtraForm({
+      currentTab: "attendance",
+      hasExistingRecords: true,
+      isEditingAll: false,
+    }),
+    true,
   );
 });
 
