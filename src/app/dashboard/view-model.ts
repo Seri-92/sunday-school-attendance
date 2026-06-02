@@ -1,6 +1,12 @@
 import type { AttendanceExtraCountInput } from "@/lib/attendance-extra";
+import { getWeeklyAttendanceGroup } from "@/lib/attendance-extra";
 import { gradeLabels, normalizeAttendanceStatus } from "@/lib/attendance-shared";
-import { gradeCodeValues, type AttendanceStatus, type GradeCode } from "@/db/schema";
+import {
+  gradeCodeValues,
+  type AttendanceStatus,
+  type GradeCode,
+  type WeeklyAttendanceGroup,
+} from "@/db/schema";
 
 export type DashboardTab = "week" | "attendance" | "students";
 
@@ -93,6 +99,14 @@ export type StudentAttendanceHistoryItem = {
   date: string;
   note: string;
   status: AttendanceStatus | "unentered";
+};
+
+export type WeeklyGroupAttendanceSummary = {
+  group: WeeklyAttendanceGroup;
+  guardianCount: number;
+  label: string;
+  studentCount: number;
+  totalCount: number;
 };
 
 function normalizeDraftNote(note: string) {
@@ -251,6 +265,66 @@ export function buildAttendanceEditorItems(params: {
       studentName: student.studentName,
     };
   });
+}
+
+export function buildWeeklyGroupAttendanceSummaries(params: {
+  classes: { gradeCode: GradeCode; id: string; name: string }[];
+  date: string;
+  guardianCounts: Record<WeeklyAttendanceGroup, number>;
+  records: AttendanceHistoryRecord[];
+  studentsByClassId: Map<string, { studentId: string }[]>;
+}): WeeklyGroupAttendanceSummary[] {
+  const studentGroupById = new Map<string, WeeklyAttendanceGroup>();
+
+  for (const classItem of params.classes) {
+    const group = getWeeklyAttendanceGroup({
+      className: classItem.name,
+      gradeCode: classItem.gradeCode,
+    });
+    const students = params.studentsByClassId.get(classItem.id) ?? [];
+
+    for (const student of students) {
+      studentGroupById.set(student.studentId, group);
+    }
+  }
+
+  const presentStudentIdsByGroup: Record<WeeklyAttendanceGroup, Set<string>> = {
+    elementary: new Set(),
+    junior_high: new Set(),
+  };
+
+  for (const record of params.records) {
+    if (record.attendanceDate !== params.date) {
+      continue;
+    }
+
+    const group = studentGroupById.get(record.studentId);
+
+    if (!group || normalizeAttendanceStatus(record.status) !== "present") {
+      continue;
+    }
+
+    presentStudentIdsByGroup[group].add(record.studentId);
+  }
+
+  return [
+    {
+      group: "elementary",
+      label: "幼小科",
+      guardianCount: params.guardianCounts.elementary,
+      studentCount: presentStudentIdsByGroup.elementary.size,
+      totalCount:
+        presentStudentIdsByGroup.elementary.size + params.guardianCounts.elementary,
+    },
+    {
+      group: "junior_high",
+      label: "中学科",
+      guardianCount: params.guardianCounts.junior_high,
+      studentCount: presentStudentIdsByGroup.junior_high.size,
+      totalCount:
+        presentStudentIdsByGroup.junior_high.size + params.guardianCounts.junior_high,
+    },
+  ];
 }
 
 const gradeOrder = new Map(gradeCodeValues.map((gradeCode, index) => [gradeCode, index]));

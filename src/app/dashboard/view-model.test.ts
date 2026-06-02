@@ -11,6 +11,7 @@ import {
   buildAttendanceSummaryBadges,
   buildHistoryByDate,
   buildStudentAttendanceHistory,
+  buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
   canSubmitWeeklyAttendanceExtraForm,
   getWeeklyAttendanceHistoryInputBadgeLabel,
@@ -149,6 +150,111 @@ test("getAttendanceCounts returns counts without making unentered negative", () 
     presentCount: 2,
     unenteredCount: 0,
   });
+});
+
+test("buildWeeklyGroupAttendanceSummaries totals present students and guardians by weekly group", () => {
+  const summaries = buildWeeklyGroupAttendanceSummaries({
+    classes: [
+      {
+        gradeCode: "kindergarten",
+        id: "class-kindergarten",
+        name: "幼稚科",
+      },
+      {
+        gradeCode: "elementary_1",
+        id: "class-elementary-1",
+        name: "小学1年",
+      },
+      {
+        gradeCode: "junior_high_1",
+        id: "class-junior-high",
+        name: "中学科",
+      },
+    ],
+    date: "2026-04-05",
+    guardianCounts: {
+      elementary: 6,
+      junior_high: 2,
+    },
+    records: [
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "present",
+        studentId: "student-kindergarten",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "present",
+        studentId: "student-elementary-present",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "absent",
+        studentId: "student-elementary-absent",
+      },
+      {
+        attendanceDate: "2026-04-05",
+        note: null,
+        status: "present",
+        studentId: "student-junior-high",
+      },
+      {
+        attendanceDate: "2026-04-12",
+        note: null,
+        status: "present",
+        studentId: "student-elementary-absent",
+      },
+    ],
+    studentsByClassId: new Map([
+      [
+        "class-kindergarten",
+        [
+          {
+            studentId: "student-kindergarten",
+          },
+        ],
+      ],
+      [
+        "class-elementary-1",
+        [
+          {
+            studentId: "student-elementary-present",
+          },
+          {
+            studentId: "student-elementary-absent",
+          },
+        ],
+      ],
+      [
+        "class-junior-high",
+        [
+          {
+            studentId: "student-junior-high",
+          },
+        ],
+      ],
+    ]),
+  });
+
+  assert.deepEqual(summaries, [
+    {
+      group: "elementary",
+      guardianCount: 6,
+      label: "幼小科",
+      studentCount: 2,
+      totalCount: 8,
+    },
+    {
+      group: "junior_high",
+      guardianCount: 2,
+      label: "中学科",
+      studentCount: 1,
+      totalCount: 3,
+    },
+  ]);
 });
 
 test("getAttendanceStatusTone returns muted but readable tones for attendance states", () => {

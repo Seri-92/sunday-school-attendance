@@ -37,6 +37,7 @@ import {
   buildAttendanceSummaryBadges,
   buildDashboardHref,
   buildStudentAttendanceHistory,
+  buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
   getWeeklyAttendanceHistoryInputBadgeLabel,
   getWeeklyAttendanceHistorySummaryLabel,
@@ -224,19 +225,33 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     sundays,
   });
 
-  const students = selectedClass
-    ? await getClassStudents(selectedClass.id, activeSchoolYear.id)
+  const classStudentsEntries = selectedClass
+    ? await Promise.all(
+        availableClasses.map(async (classItem) => [
+          classItem.id,
+          await getClassStudents(classItem.id, activeSchoolYear.id),
+        ] as const),
+      )
     : [];
+  const studentsByClassId = new Map(classStudentsEntries);
+  const students = selectedClass ? studentsByClassId.get(selectedClass.id) ?? [] : [];
   const studentsForTab = sortStudentsByGrade(students);
   const requestedStudentId = getSingleValue(params.studentId);
   const selectedStudent =
     currentTab === "students" && requestedStudentId
       ? studentsForTab.find((student) => student.studentId === requestedStudentId) ?? null
       : null;
-  const studentIds = students.map((student) => student.studentId);
+  const selectedClassStudentIds = new Set(students.map((student) => student.studentId));
+  const allStudentIds = [
+    ...new Set(
+      classStudentsEntries.flatMap(([, classStudents]) =>
+        classStudents.map((student) => student.studentId),
+      ),
+    ),
+  ];
   const records = selectedClass
     ? await getClassAttendanceRecords(
-        studentIds,
+        allStudentIds,
         activeSchoolYear.id,
         activeSchoolYear.startDate,
         activeSchoolYear.endDate,
@@ -262,7 +277,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const selectedDateRecords = new Map<string, SelectedDateRecord>(
     records
-      .filter((record) => record.attendanceDate === selectedDate)
+      .filter(
+        (record) =>
+          record.attendanceDate === selectedDate &&
+          selectedClassStudentIds.has(record.studentId),
+      )
       .map((record) => [
         record.studentId,
         {
@@ -297,6 +316,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const juniorHighGuardianCountRecord = juniorHighWeeklyAttendanceExtraCounts.find(
     (record) => record.category === "guardian",
   );
+  const weeklyGroupAttendanceSummaries = buildWeeklyGroupAttendanceSummaries({
+    classes: availableClasses,
+    date: selectedDate,
+    guardianCounts: {
+      elementary: elementaryGuardianCountRecord?.headcount ?? 0,
+      junior_high: juniorHighGuardianCountRecord?.headcount ?? 0,
+    },
+    records,
+    studentsByClassId,
+  });
   const juniorHighOtherCountRecord = classAttendanceExtraCounts.find(
     (record) => record.category === "junior_high_other",
   );
@@ -481,6 +510,44 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     selectedDate={selectedDate}
                     summaryLabel={`${enteredCount}/${students.length} 名入力済み`}
                   />
+
+                  <section className="mt-6 border-t border-zinc-200 pt-6">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-lg font-semibold text-zinc-950">今週の集計</h3>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {weeklyGroupAttendanceSummaries.map((summary) => (
+                        <div
+                          key={summary.group}
+                          className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <h4 className="text-base font-semibold text-zinc-950">
+                              {summary.label}
+                            </h4>
+                            <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-zinc-900 shadow-sm">
+                              合計 {summary.totalCount} 名
+                            </div>
+                          </div>
+                          <dl className="mt-4 grid grid-cols-2 gap-3">
+                            <div className="rounded-xl bg-white p-3">
+                              <dt className="text-xs font-medium text-zinc-600">生徒</dt>
+                              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
+                                {summary.studentCount}
+                              </dd>
+                            </div>
+                            <div className="rounded-xl bg-white p-3">
+                              <dt className="text-xs font-medium text-zinc-600">保護者</dt>
+                              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
+                                {summary.guardianCount}
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </article>
               </>
             ) : null}
