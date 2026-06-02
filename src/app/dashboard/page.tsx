@@ -510,44 +510,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     selectedDate={selectedDate}
                     summaryLabel={`${enteredCount}/${students.length} 名入力済み`}
                   />
-
-                  <section className="mt-6 border-t border-zinc-200 pt-6">
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-lg font-semibold text-zinc-950">今週の集計</h3>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {weeklyGroupAttendanceSummaries.map((summary) => (
-                        <div
-                          key={summary.group}
-                          className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <h4 className="text-base font-semibold text-zinc-950">
-                              {summary.label}
-                            </h4>
-                            <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-zinc-900 shadow-sm">
-                              合計 {summary.totalCount} 名
-                            </div>
-                          </div>
-                          <dl className="mt-4 grid grid-cols-2 gap-3">
-                            <div className="rounded-xl bg-white p-3">
-                              <dt className="text-xs font-medium text-zinc-600">生徒</dt>
-                              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
-                                {summary.studentCount}
-                              </dd>
-                            </div>
-                            <div className="rounded-xl bg-white p-3">
-                              <dt className="text-xs font-medium text-zinc-600">保護者</dt>
-                              <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
-                                {summary.guardianCount}
-                              </dd>
-                            </div>
-                          </dl>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
                 </article>
               </>
             ) : null}
@@ -872,6 +834,43 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   title={`${juniorHighGuardianExtraCountInput.label}人数`}
                 />
               </div>
+            ) : null}
+            {selectedClass && currentTab === "week" ? (
+              <article className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur">
+                <h2 className="text-lg font-semibold text-zinc-950">今週の集計</h2>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {weeklyGroupAttendanceSummaries.map((summary) => (
+                    <div
+                      key={summary.group}
+                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-base font-semibold text-zinc-950">
+                          {summary.label}
+                        </h3>
+                        <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-zinc-900 shadow-sm">
+                          合計 {summary.totalCount} 名
+                        </div>
+                      </div>
+                      <dl className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-white p-3">
+                          <dt className="text-xs font-medium text-zinc-600">生徒</dt>
+                          <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
+                            {summary.studentCount}
+                          </dd>
+                        </div>
+                        <div className="rounded-xl bg-white p-3">
+                          <dt className="text-xs font-medium text-zinc-600">保護者</dt>
+                          <dd className="mt-1 text-2xl font-semibold tabular-nums text-zinc-950">
+                            {summary.guardianCount}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </article>
             ) : null}
           </div>
         </section>
