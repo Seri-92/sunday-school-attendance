@@ -73,13 +73,7 @@ export async function getActiveSchoolYear() {
 
 export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYearId: string) {
   if (!shouldFilterClassesByAssignment(teacher.role)) {
-    const classList = await db
-      .select()
-      .from(classes)
-      .where(eq(classes.schoolYearId, schoolYearId))
-      .orderBy(asc(classes.sortOrder), asc(classes.name));
-
-    return sortClassesByDisplayOrder(classList);
+    return getClassesForYear(schoolYearId);
   }
 
   const classList = await db
@@ -103,6 +97,16 @@ export async function getTeacherClassesForYear(teacher: LinkedTeacher, schoolYea
         eq(classTeacherAssignments.teacherId, teacher.id),
       ),
     )
+    .orderBy(asc(classes.sortOrder), asc(classes.name));
+
+  return sortClassesByDisplayOrder(classList);
+}
+
+export async function getClassesForYear(schoolYearId: string) {
+  const classList = await db
+    .select()
+    .from(classes)
+    .where(eq(classes.schoolYearId, schoolYearId))
     .orderBy(asc(classes.sortOrder), asc(classes.name));
 
   return sortClassesByDisplayOrder(classList);
