@@ -109,6 +109,11 @@ export type WeeklyGroupAttendanceSummary = {
   totalCount: number;
 };
 
+export type AttendanceMonthOption = {
+  label: string;
+  value: string;
+};
+
 function normalizeDraftNote(note: string) {
   return note.trim();
 }
@@ -323,6 +328,140 @@ export function buildWeeklyGroupAttendanceSummaries(params: {
       studentCount: presentStudentIdsByGroup.junior_high.size,
       totalCount:
         presentStudentIdsByGroup.junior_high.size + params.guardianCounts.junior_high,
+    },
+  ];
+}
+
+const japanMonthFormatter = new Intl.DateTimeFormat("en-CA", {
+  month: "2-digit",
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+});
+
+function getMonthInJapan(date: Date) {
+  return japanMonthFormatter.format(date).slice(0, 7);
+}
+
+export function formatAttendanceMonthLabel(month: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+
+  if (!match) {
+    return month;
+  }
+
+  return `${match[1]}年${Number(match[2])}月`;
+}
+
+export function buildAttendanceMonthOptions(params: {
+  sundays: string[];
+  today?: Date;
+}): AttendanceMonthOption[] {
+  const currentMonth = getMonthInJapan(params.today ?? new Date());
+  const months = new Set<string>();
+
+  for (const sunday of params.sundays) {
+    const month = sunday.slice(0, 7);
+
+    if (month <= currentMonth) {
+      months.add(month);
+    }
+  }
+
+  return [...months]
+    .sort((left, right) => right.localeCompare(left))
+    .map((month) => ({
+      label: formatAttendanceMonthLabel(month),
+      value: month,
+    }));
+}
+
+export function resolveAttendanceMonth(params: {
+  monthOptions: AttendanceMonthOption[];
+  requestedMonth?: string;
+}) {
+  if (
+    params.requestedMonth &&
+    params.monthOptions.some((option) => option.value === params.requestedMonth)
+  ) {
+    return params.requestedMonth;
+  }
+
+  return params.monthOptions[0]?.value ?? "";
+}
+
+export function getSundaysForAttendanceMonth(params: {
+  month: string;
+  sundays: string[];
+}) {
+  return params.sundays.filter((sunday) => sunday.startsWith(`${params.month}-`));
+}
+
+export function buildMonthlyGroupAttendanceSummaries(params: {
+  classes: { gradeCode: GradeCode; id: string; name: string }[];
+  dates: string[];
+  guardianCountsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>;
+  records: AttendanceHistoryRecord[];
+  studentsByClassId: Map<string, { studentId: string }[]>;
+}): WeeklyGroupAttendanceSummary[] {
+  const studentGroupById = new Map<string, WeeklyAttendanceGroup>();
+
+  for (const classItem of params.classes) {
+    const group = getWeeklyAttendanceGroup({
+      className: classItem.name,
+      gradeCode: classItem.gradeCode,
+    });
+    const students = params.studentsByClassId.get(classItem.id) ?? [];
+
+    for (const student of students) {
+      studentGroupById.set(student.studentId, group);
+    }
+  }
+
+  const targetDates = new Set(params.dates);
+  const studentCounts: Record<WeeklyAttendanceGroup, number> = {
+    elementary: 0,
+    junior_high: 0,
+  };
+  const guardianCounts: Record<WeeklyAttendanceGroup, number> = {
+    elementary: 0,
+    junior_high: 0,
+  };
+
+  for (const date of params.dates) {
+    const counts = params.guardianCountsByDate.get(date);
+
+    guardianCounts.elementary += counts?.elementary ?? 0;
+    guardianCounts.junior_high += counts?.junior_high ?? 0;
+  }
+
+  for (const record of params.records) {
+    if (!targetDates.has(record.attendanceDate)) {
+      continue;
+    }
+
+    const group = studentGroupById.get(record.studentId);
+
+    if (!group || normalizeAttendanceStatus(record.status) !== "present") {
+      continue;
+    }
+
+    studentCounts[group] += 1;
+  }
+
+  return [
+    {
+      group: "elementary",
+      guardianCount: guardianCounts.elementary,
+      label: "幼小科",
+      studentCount: studentCounts.elementary,
+      totalCount: studentCounts.elementary + guardianCounts.elementary,
+    },
+    {
+      group: "junior_high",
+      guardianCount: guardianCounts.junior_high,
+      label: "中学科",
+      studentCount: studentCounts.junior_high,
+      totalCount: studentCounts.junior_high + guardianCounts.junior_high,
     },
   ];
 }

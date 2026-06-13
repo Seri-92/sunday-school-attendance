@@ -9,7 +9,9 @@ import {
   buildDashboardHref,
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
+  buildAttendanceMonthOptions,
   buildHistoryByDate,
+  buildMonthlyGroupAttendanceSummaries,
   buildStudentAttendanceHistory,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
@@ -22,6 +24,7 @@ import {
   hasAttendanceExtraCountChanges,
   isAttendanceEditorReadonly,
   isWeekAttendanceReadonly,
+  resolveAttendanceMonth,
   resolveDashboardSelectedDate,
   sortStudentsByGrade,
   type SelectedDateRecord,
@@ -252,6 +255,116 @@ test("buildWeeklyGroupAttendanceSummaries totals present students and guardians 
       guardianCount: 2,
       label: "中学科",
       studentCount: 1,
+      totalCount: 3,
+    },
+  ]);
+});
+
+test("buildAttendanceMonthOptions returns current and past months in descending order", () => {
+  const options = buildAttendanceMonthOptions({
+    sundays: [
+      "2026-04-05",
+      "2026-04-12",
+      "2026-05-03",
+      "2026-06-07",
+      "2026-07-05",
+    ],
+    today: new Date("2026-06-14T00:00:00+09:00"),
+  });
+
+  assert.deepEqual(options, [
+    { label: "2026年6月", value: "2026-06" },
+    { label: "2026年5月", value: "2026-05" },
+    { label: "2026年4月", value: "2026-04" },
+  ]);
+});
+
+test("resolveAttendanceMonth falls back to the current month option", () => {
+  const options = [
+    { label: "2026年6月", value: "2026-06" },
+    { label: "2026年5月", value: "2026-05" },
+  ];
+
+  assert.equal(
+    resolveAttendanceMonth({ monthOptions: options, requestedMonth: "2026-05" }),
+    "2026-05",
+  );
+  assert.equal(
+    resolveAttendanceMonth({ monthOptions: options, requestedMonth: "2026-04" }),
+    "2026-06",
+  );
+});
+
+test("buildMonthlyGroupAttendanceSummaries totals weekly attendance within one month", () => {
+  const summaries = buildMonthlyGroupAttendanceSummaries({
+    classes: [
+      {
+        gradeCode: "elementary_1",
+        id: "class-elementary",
+        name: "小学1年",
+      },
+      {
+        gradeCode: "junior_high_1",
+        id: "class-junior-high",
+        name: "中学科",
+      },
+    ],
+    dates: ["2026-05-03", "2026-05-10"],
+    guardianCountsByDate: new Map([
+      [
+        "2026-05-03",
+        {
+          elementary: 4,
+          junior_high: 1,
+        },
+      ],
+      [
+        "2026-05-10",
+        {
+          elementary: 3,
+          junior_high: 2,
+        },
+      ],
+    ]),
+    records: [
+      {
+        attendanceDate: "2026-05-03",
+        note: null,
+        status: "present",
+        studentId: "student-elementary",
+      },
+      {
+        attendanceDate: "2026-05-10",
+        note: null,
+        status: "present",
+        studentId: "student-elementary",
+      },
+      {
+        attendanceDate: "2026-05-10",
+        note: null,
+        status: "absent",
+        studentId: "student-junior-high",
+      },
+    ],
+    studentsByClassId: new Map([
+      ["class-elementary", [{ studentId: "student-elementary" }]],
+      ["class-junior-high", [{ studentId: "student-junior-high" }]],
+    ]),
+  });
+
+  assert.deepEqual(summaries, [
+    {
+      group: "elementary",
+      guardianCount: 7,
+      label: "幼小科",
+      studentCount: 2,
+      totalCount: 9,
+    },
+    {
+      group: "junior_high",
+      guardianCount: 3,
+      label: "中学科",
+      studentCount: 0,
       totalCount: 3,
     },
   ]);
