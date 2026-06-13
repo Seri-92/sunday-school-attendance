@@ -897,6 +897,18 @@ test("buildDashboardHref includes studentId only when provided", () => {
   );
 });
 
+test("buildDashboardHref can preserve date when linking to a student from another tab", () => {
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      date: "2026-04-05",
+      studentId: "student-1",
+      tab: "students",
+    }),
+    "/dashboard?tab=students&classId=class-1&date=2026-04-05&studentId=student-1",
+  );
+});
+
 test("buildDashboardHref omits date for week tab", () => {
   assert.equal(
     buildDashboardHref({

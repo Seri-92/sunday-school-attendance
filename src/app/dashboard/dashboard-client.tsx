@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
@@ -181,6 +182,19 @@ function getAttendanceStatusLabel(status: AttendanceStatus) {
   return status === "present" ? "出席" : "欠席";
 }
 
+function buildStudentHistoryHref(params: {
+  classId: string;
+  date: string;
+  studentId: string;
+}) {
+  return buildDashboardHref({
+    classId: params.classId,
+    date: params.date,
+    studentId: params.studentId,
+    tab: "students",
+  });
+}
+
 export function AttendanceEditor(props: AttendanceEditorProps) {
   const initialState = buildAttendanceDraftInitialState(props.items);
   const [draftState, setDraftState] = useState(initialState);
@@ -291,13 +305,22 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
                     className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <StudentName
-                        firstName={item.firstName}
-                        firstNameKana={item.firstNameKana}
-                        lastName={item.lastName}
-                        lastNameKana={item.lastNameKana}
-                        nameClassName="text-sm font-semibold text-zinc-950"
-                      />
+                      <Link
+                        className="block rounded-xl px-2 py-1 transition hover:bg-zinc-50"
+                        href={buildStudentHistoryHref({
+                          classId: props.classId,
+                          date: props.selectedDate,
+                          studentId: item.studentId,
+                        })}
+                      >
+                        <StudentName
+                          firstName={item.firstName}
+                          firstNameKana={item.firstNameKana}
+                          lastName={item.lastName}
+                          lastNameKana={item.lastNameKana}
+                          nameClassName="text-sm font-semibold text-zinc-950"
+                        />
+                      </Link>
                     </div>
                     <span
                       className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${currentTone.badgeClassName}`}
@@ -320,13 +343,22 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <StudentName
-                      firstName={item.firstName}
-                      firstNameKana={item.firstNameKana}
-                      lastName={item.lastName}
-                      lastNameKana={item.lastNameKana}
-                      nameClassName="text-lg font-semibold text-zinc-950"
-                    />
+                    <Link
+                      className="block rounded-xl px-2 py-1 transition hover:bg-white"
+                      href={buildStudentHistoryHref({
+                        classId: props.classId,
+                        date: props.selectedDate,
+                        studentId: item.studentId,
+                      })}
+                    >
+                      <StudentName
+                        firstName={item.firstName}
+                        firstNameKana={item.firstNameKana}
+                        lastName={item.lastName}
+                        lastNameKana={item.lastNameKana}
+                        nameClassName="text-lg font-semibold text-zinc-950"
+                      />
+                    </Link>
                     <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">

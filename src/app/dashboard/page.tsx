@@ -574,18 +574,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         week.enteredCount > 0 ? ("present" as const) : ("unentered" as const);
 
                       return (
-                        <Link
+                        <div
                           key={week.date}
-                          className={`block rounded-[1.5rem] border p-4 transition sm:p-5 ${
+                          className={`rounded-[1.5rem] border p-4 transition sm:p-5 ${
                             isSelected
                               ? "border-emerald-300 bg-emerald-50"
-                              : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-white"
+                              : "border-zinc-200 bg-zinc-50"
                           }`}
-                          href={buildDashboardHref({
-                            tab: "attendance",
-                            classId: selectedClass.id,
-                            date: week.date,
-                          })}
                         >
                           <div className="flex flex-col gap-4">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -610,6 +605,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                                     表示中
                                   </span>
                                 ) : null}
+                                <Link
+                                  className="inline-flex rounded-full border border-zinc-300 bg-white px-3 py-1 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+                                  href={buildDashboardHref({
+                                    tab: "attendance",
+                                    classId: selectedClass.id,
+                                    date: week.date,
+                                  })}
+                                >
+                                  週を確認
+                                </Link>
                               </div>
                             </div>
 
@@ -618,12 +623,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                               {week.presentStudents.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {week.presentStudents.map((student) => (
-                                    <span
+                                    <Link
                                       key={student.studentId}
-                                      className="rounded-full border border-teal-200 bg-white px-4 py-2 text-base font-semibold text-teal-950 shadow-sm"
+                                      className="rounded-full border border-teal-200 bg-white px-4 py-2 text-base font-semibold text-teal-950 shadow-sm transition hover:border-teal-300 hover:bg-teal-50"
+                                      href={buildDashboardHref({
+                                        tab: "students",
+                                        classId: selectedClass.id,
+                                        date: week.date,
+                                        studentId: student.studentId,
+                                      })}
                                     >
                                       {student.studentName}
-                                    </span>
+                                    </Link>
                                   ))}
                                 </div>
                               ) : (
@@ -633,7 +644,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                               )}
                             </div>
                           </div>
-                        </Link>
+                        </div>
                       );
                     })}
                   </div>
