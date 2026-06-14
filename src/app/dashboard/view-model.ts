@@ -101,6 +101,12 @@ export type StudentAttendanceHistoryItem = {
   status: AttendanceStatus | "unentered";
 };
 
+export type StudentAttendanceCalendarMonth = {
+  label: string;
+  month: string;
+  weeks: StudentAttendanceHistoryItem[];
+};
+
 export type WeeklyGroupAttendanceSummary = {
   group: WeeklyAttendanceGroup;
   guardianCount: number;
@@ -722,6 +728,23 @@ export function buildStudentAttendanceHistory(params: {
       status: normalizeAttendanceStatus(record.status),
     };
   });
+}
+
+export function buildStudentAttendanceCalendarMonths(
+  history: StudentAttendanceHistoryItem[],
+): StudentAttendanceCalendarMonth[] {
+  const months = new Map<string, StudentAttendanceHistoryItem[]>();
+
+  for (const item of history) {
+    const month = item.date.slice(0, 7);
+    months.set(month, [...(months.get(month) ?? []), item]);
+  }
+
+  return Array.from(months, ([month, weeks]) => ({
+    label: formatAttendanceMonthLabel(month),
+    month,
+    weeks,
+  }));
 }
 
 export function getWeeklyAttendanceHistorySummaryLabel(

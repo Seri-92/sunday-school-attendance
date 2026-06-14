@@ -36,6 +36,7 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildDashboardHref,
+  buildStudentAttendanceCalendarMonths,
   buildStudentAttendanceHistory,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
@@ -83,6 +84,21 @@ function getStudentHistoryStatusLabel(status: "present" | "absent" | "unentered"
     default:
       return "未入力";
   }
+}
+
+function getStudentHistoryCellClassName(status: "present" | "absent" | "unentered") {
+  switch (status) {
+    case "present":
+      return "border-teal-300 bg-teal-100 text-teal-950 hover:border-teal-500 hover:bg-teal-200";
+    case "absent":
+      return "border-amber-300 bg-amber-100 text-amber-950 hover:border-amber-500 hover:bg-amber-200";
+    default:
+      return "border-zinc-200 bg-zinc-100 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-200";
+  }
+}
+
+function formatStudentHistoryDayLabel(date: string) {
+  return String(Number(date.slice(8, 10)));
 }
 
 function renderClassSwitcher(params: {
@@ -362,6 +378,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         sundays,
       })
     : [];
+  const selectedStudentAttendanceCalendarMonths = buildStudentAttendanceCalendarMonths(
+    selectedStudentAttendanceHistory,
+  );
+  const selectedStudentAttendanceNotes = selectedStudentAttendanceHistory.filter((item) =>
+    item.note.trim(),
+  );
   const selectedStudentAttendanceCounts = selectedStudent
     ? {
         absent: selectedStudentAttendanceHistory.filter((item) => item.status === "absent")
@@ -718,45 +740,91 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       ))}
                     </div>
 
-                    <div className="mt-6 space-y-3">
-                      {selectedStudentAttendanceHistory.map((item) => {
-                        const tone = getAttendanceStatusTone(item.status);
+                    <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                      <div className="flex flex-wrap gap-3 text-xs font-medium text-zinc-600">
+                        {[
+                          { label: "出席", status: "present" as const },
+                          { label: "欠席", status: "absent" as const },
+                          { label: "未入力", status: "unentered" as const },
+                        ].map((item) => (
+                          <span key={item.status} className="inline-flex items-center gap-1.5">
+                            <span
+                              className={`size-3 rounded-sm border ${getStudentHistoryCellClassName(
+                                item.status,
+                              )}`}
+                            />
+                            {item.label}
+                          </span>
+                        ))}
+                      </div>
 
-                        return (
-                          <div
-                            key={item.date}
-                            className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5"
+                      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {selectedStudentAttendanceCalendarMonths.map((month) => (
+                          <section
+                            key={month.month}
+                            className="rounded-2xl border border-zinc-200 bg-white p-4"
                           >
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <p className="text-base font-semibold text-zinc-950">
-                                  {formatAttendanceDateLabel(item.date)}
-                                </p>
-                                <p className="mt-1 text-sm text-zinc-600">
-                                  {item.note || "メモなし"}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${tone.badgeClassName}`}
-                                >
-                                  {getStudentHistoryStatusLabel(item.status)}
-                                </span>
+                            <h3 className="text-sm font-semibold text-zinc-700">{month.label}</h3>
+                            <div className="mt-3 grid grid-cols-[repeat(5,2rem)] gap-2">
+                              {month.weeks.map((item) => (
                                 <Link
-                                  className="inline-flex rounded-full border border-zinc-300 bg-white px-3 py-1 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+                                  key={item.date}
+                                  aria-label={`${formatAttendanceDateLabel(
+                                    item.date,
+                                  )}: ${getStudentHistoryStatusLabel(item.status)}`}
+                                  className={`flex size-8 items-center justify-center rounded-md border text-xs font-semibold tabular-nums transition ${getStudentHistoryCellClassName(
+                                    item.status,
+                                  )}`}
                                   href={buildDashboardHref({
                                     tab: "attendance",
                                     classId: selectedClass.id,
                                     date: item.date,
                                   })}
+                                  title={`${formatAttendanceDateLabel(
+                                    item.date,
+                                  )}: ${getStudentHistoryStatusLabel(item.status)}`}
                                 >
-                                  週を確認
+                                  {formatStudentHistoryDayLabel(item.date)}
                                 </Link>
-                              </div>
+                              ))}
                             </div>
-                          </div>
-                        );
-                      })}
+                          </section>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="text-sm font-semibold text-zinc-700">メモ</h3>
+                      {selectedStudentAttendanceNotes.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {selectedStudentAttendanceNotes.map((item) => {
+                            const tone = getAttendanceStatusTone(item.status);
+
+                            return (
+                              <div
+                                key={item.date}
+                                className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div>
+                                  <p className="text-sm font-semibold text-zinc-950">
+                                    {formatAttendanceDateLabel(item.date)}
+                                  </p>
+                                  <p className="mt-1 text-sm text-zinc-600">{item.note}</p>
+                                </div>
+                                <span
+                                  className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${tone.badgeClassName}`}
+                                >
+                                  {getStudentHistoryStatusLabel(item.status)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="mt-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+                          メモはありません。
+                        </p>
+                      )}
                     </div>
                   </article>
                 ) : (

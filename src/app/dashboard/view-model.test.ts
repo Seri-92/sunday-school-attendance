@@ -12,6 +12,7 @@ import {
   buildAttendanceMonthOptions,
   buildHistoryByDate,
   buildMonthlyGroupAttendanceSummaries,
+  buildStudentAttendanceCalendarMonths,
   buildStudentAttendanceHistory,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
@@ -858,6 +859,39 @@ test("buildStudentAttendanceHistory returns one student's records in sunday orde
       date: "2026-04-19",
       note: "連絡あり",
       status: "absent",
+    },
+  ]);
+});
+
+test("buildStudentAttendanceCalendarMonths groups student history by month", () => {
+  const history = [
+    {
+      date: "2026-04-05",
+      note: "",
+      status: "present" as const,
+    },
+    {
+      date: "2026-04-12",
+      note: "",
+      status: "unentered" as const,
+    },
+    {
+      date: "2026-05-03",
+      note: "連絡あり",
+      status: "absent" as const,
+    },
+  ];
+
+  assert.deepEqual(buildStudentAttendanceCalendarMonths(history), [
+    {
+      label: "2026年4月",
+      month: "2026-04",
+      weeks: [history[0], history[1]],
+    },
+    {
+      label: "2026年5月",
+      month: "2026-05",
+      weeks: [history[2]],
     },
   ]);
 });
