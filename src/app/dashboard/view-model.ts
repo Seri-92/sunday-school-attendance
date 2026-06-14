@@ -410,7 +410,6 @@ export function formatAttendanceAverageCount(value: number) {
 export function buildMonthlyGroupAttendanceSummaries(params: {
   classes: { gradeCode: GradeCode; id: string; name: string }[];
   dates: string[];
-  guardianCountsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>;
   records: AttendanceHistoryRecord[];
   studentsByClassId: Map<string, { studentId: string }[]>;
 }): MonthlyGroupAttendanceSummary[] {
@@ -429,17 +428,10 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
   }
 
   const targetDates = new Set(params.dates);
-  const attendanceCounts: Record<WeeklyAttendanceGroup, number> = {
+  const studentCounts: Record<WeeklyAttendanceGroup, number> = {
     elementary: 0,
     junior_high: 0,
   };
-
-  for (const date of params.dates) {
-    const counts = params.guardianCountsByDate.get(date);
-
-    attendanceCounts.elementary += counts?.elementary ?? 0;
-    attendanceCounts.junior_high += counts?.junior_high ?? 0;
-  }
 
   for (const record of params.records) {
     if (!targetDates.has(record.attendanceDate)) {
@@ -452,7 +444,7 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
       continue;
     }
 
-    attendanceCounts[group] += 1;
+    studentCounts[group] += 1;
   }
 
   const weekCount = params.dates.length;
@@ -460,13 +452,13 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
 
   return [
     {
-      averageCount: attendanceCounts.elementary / divisor,
+      averageCount: studentCounts.elementary / divisor,
       group: "elementary",
       label: "幼小科",
       weekCount,
     },
     {
-      averageCount: attendanceCounts.junior_high / divisor,
+      averageCount: studentCounts.junior_high / divisor,
       group: "junior_high",
       label: "中学科",
       weekCount,

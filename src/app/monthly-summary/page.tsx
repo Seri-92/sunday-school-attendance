@@ -6,7 +6,6 @@ import {
   getClassAttendanceRecords,
   getClassStudents,
   getSundaysInRange,
-  getWeeklyAttendanceExtraCounts,
 } from "@/lib/attendance";
 import {
   buildAttendanceMonthOptions,
@@ -19,7 +18,6 @@ import {
   type AttendanceMonthOption,
   type MonthlyGroupAttendanceSummary,
 } from "@/app/dashboard/view-model";
-import type { WeeklyAttendanceGroup } from "@/db/schema";
 import { MonthSwitcher } from "./month-switcher";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +35,6 @@ type MonthlySummaryPageProps = {
 
 function getSingleValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function getGuardianCount(
-  countsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>,
-  date: string,
-  group: WeeklyAttendanceGroup,
-) {
-  return countsByDate.get(date)?.[group] ?? 0;
 }
 
 function EmptyState(props: { monthOptions?: AttendanceMonthOption[] }) {
@@ -84,7 +74,7 @@ function SummaryCard(props: { summary: MonthlyGroupAttendanceSummary }) {
       <dl className="mt-6 grid gap-3">
         <div className="rounded-2xl bg-zinc-50 p-4">
           <dt className="text-sm font-medium text-zinc-600">
-            生徒と保護者を合計した平均人数
+            生徒の平均出席人数
           </dt>
           <dd className="mt-2 text-6xl font-semibold tabular-nums text-zinc-950">
             {formatAttendanceAverageCount(summary.averageCount)}
@@ -145,32 +135,9 @@ export default async function MonthlySummaryPage({
     activeSchoolYear.startDate,
     activeSchoolYear.endDate,
   );
-  const guardianCountsEntries = await Promise.all(
-    selectedDates.map(async (date) => {
-      const [elementaryWeeklyExtraCounts, juniorHighWeeklyExtraCounts] =
-        await Promise.all([
-          getWeeklyAttendanceExtraCounts(activeSchoolYear.id, date, "elementary"),
-          getWeeklyAttendanceExtraCounts(activeSchoolYear.id, date, "junior_high"),
-        ]);
-
-      return [
-        date,
-        {
-          elementary:
-            elementaryWeeklyExtraCounts.find((record) => record.category === "guardian")
-              ?.headcount ?? 0,
-          junior_high:
-            juniorHighWeeklyExtraCounts.find((record) => record.category === "guardian")
-              ?.headcount ?? 0,
-        },
-      ] as const;
-    }),
-  );
-  const guardianCountsByDate = new Map(guardianCountsEntries);
   const summaries = buildMonthlyGroupAttendanceSummaries({
     classes,
     dates: selectedDates,
-    guardianCountsByDate,
     records,
     studentsByClassId,
   });
@@ -180,8 +147,8 @@ export default async function MonthlySummaryPage({
       classes,
       date,
       guardianCounts: {
-        elementary: getGuardianCount(guardianCountsByDate, date, "elementary"),
-        junior_high: getGuardianCount(guardianCountsByDate, date, "junior_high"),
+        elementary: 0,
+        junior_high: 0,
       },
       records,
       studentsByClassId,
@@ -238,7 +205,7 @@ export default async function MonthlySummaryPage({
                   <th className="px-4 py-3 font-semibold">日付</th>
                   <th className="px-4 py-3 text-right font-semibold">幼小科</th>
                   <th className="px-4 py-3 text-right font-semibold">中学科</th>
-                  <th className="px-4 py-3 text-right font-semibold">合計</th>
+                  <th className="px-4 py-3 text-right font-semibold">生徒合計</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 bg-white">
