@@ -582,7 +582,7 @@ test("isAttendanceEditorReadonly locks entered week and attendance tabs until fu
   );
 });
 
-test("hasAttendanceDraftChanges ignores note whitespace but detects status changes", () => {
+test("hasAttendanceDraftChanges ignores notes but detects status changes", () => {
   const initialState = {
     "student-1": {
       note: "連絡あり",
@@ -598,7 +598,7 @@ test("hasAttendanceDraftChanges ignores note whitespace but detects status chang
     hasAttendanceDraftChanges({
       draftState: {
         "student-1": {
-          note: "  連絡あり  ",
+          note: "画面では使わないメモ",
           status: "present",
         },
         "student-2": {

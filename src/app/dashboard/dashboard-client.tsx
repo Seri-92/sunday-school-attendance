@@ -162,7 +162,6 @@ export function AttendanceDateSwitcher(props: AttendanceDateSwitcherProps) {
 }
 
 function updateDraftState(params: {
-  nextNote?: string;
   nextStatus?: AttendanceStatus;
   previousState: AttendanceDraftState;
   studentId: string;
@@ -172,7 +171,7 @@ function updateDraftState(params: {
   return {
     ...params.previousState,
     [params.studentId]: {
-      note: params.nextNote ?? currentValue.note,
+      note: currentValue.note,
       status: params.nextStatus ?? currentValue.status,
     },
   };
@@ -268,7 +267,6 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
               return (
                 <div key={item.studentId}>
                   <input name={`status:${item.studentId}`} type="hidden" value={currentValue.status} />
-                  <input name={`note:${item.studentId}`} type="hidden" value={currentValue.note} />
                 </div>
               );
             })}
@@ -339,10 +337,10 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
             return (
               <article
                 key={item.studentId}
-                className="rounded-[1.75rem] border border-zinc-200 bg-zinc-50/90 p-5 shadow-sm"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3 shadow-sm sm:p-5"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
+                <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3">
+                  <div className="min-w-0">
                     <Link
                       className="block rounded-xl px-2 py-1 transition hover:bg-white"
                       href={buildStudentHistoryHref({
@@ -356,83 +354,61 @@ export function AttendanceEditor(props: AttendanceEditorProps) {
                         firstNameKana={item.firstNameKana}
                         lastName={item.lastName}
                         lastNameKana={item.lastNameKana}
-                        nameClassName="text-lg font-semibold text-zinc-950"
+                        nameClassName="text-base font-semibold text-zinc-950 sm:text-lg"
                       />
                     </Link>
-                    <p className="mt-1 text-sm text-zinc-600">{item.gradeLabel}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 px-2">
+                      <p className="text-xs font-medium text-zinc-600 sm:text-sm">{item.gradeLabel}</p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
+                          item.hasExistingRecord
+                            ? "bg-emerald-100 text-emerald-900"
+                            : "bg-zinc-200 text-zinc-700"
+                        }`}
+                      >
+                        {item.hasExistingRecord ? "再編集" : "今回入力"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        item.hasExistingRecord
-                          ? "bg-emerald-100 text-emerald-900"
-                          : "bg-zinc-200 text-zinc-700"
-                      }`}
-                    >
-                      {item.hasExistingRecord ? "入力済みを再編集" : "今回入力"}
-                    </span>
-                  </div>
+
+                  <fieldset>
+                    <legend className="sr-only">出席状態</legend>
+                    <div className="grid grid-cols-2 gap-2 sm:w-72">
+                      {(["present", "absent"] as const).map((status) => {
+                        const inputId = `${props.currentTab}-${props.selectedDate}-${item.studentId}-${status}`;
+                        const tone = getAttendanceStatusTone(status);
+
+                        return (
+                          <div key={status}>
+                            <input
+                              checked={currentValue.status === status}
+                              className="peer sr-only"
+                              id={inputId}
+                              name={`status:${item.studentId}`}
+                              onChange={() => {
+                                setDraftState((previousState) =>
+                                  updateDraftState({
+                                    nextStatus: status,
+                                    previousState,
+                                    studentId: item.studentId,
+                                  }),
+                                );
+                              }}
+                              type="radio"
+                              value={status}
+                            />
+                            <label
+                              className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold transition sm:min-h-14 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base ${tone.optionIdleClassName} ${tone.optionCheckedClassName}`}
+                              htmlFor={inputId}
+                            >
+                              {status === "present" ? "出席" : "欠席"}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
                 </div>
-
-                <fieldset className="mt-5">
-                  <legend className="text-sm font-medium text-zinc-700">出席状態</legend>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    {(["present", "absent"] as const).map((status) => {
-                      const inputId = `${props.currentTab}-${props.selectedDate}-${item.studentId}-${status}`;
-                      const tone = getAttendanceStatusTone(status);
-
-                      return (
-                        <div key={status}>
-                          <input
-                            checked={currentValue.status === status}
-                            className="peer sr-only"
-                            id={inputId}
-                            name={`status:${item.studentId}`}
-                            onChange={() => {
-                              setDraftState((previousState) =>
-                                updateDraftState({
-                                  nextStatus: status,
-                                  previousState,
-                                  studentId: item.studentId,
-                                }),
-                              );
-                            }}
-                            type="radio"
-                            value={status}
-                          />
-                          <label
-                            className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-4 text-base font-semibold transition ${tone.optionIdleClassName} ${tone.optionCheckedClassName}`}
-                            htmlFor={inputId}
-                          >
-                            {status === "present" ? "出席" : "欠席"}
-                          </label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-
-                <label className="mt-5 block space-y-2 text-sm text-zinc-700">
-                  <span className="font-medium">メモ</span>
-                  <input
-                    className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-zinc-950"
-                    name={`note:${item.studentId}`}
-                    onChange={(event) => {
-                      const nextNote = event.target.value;
-
-                      setDraftState((previousState) =>
-                        updateDraftState({
-                          nextNote,
-                          previousState,
-                          studentId: item.studentId,
-                        }),
-                      );
-                    }}
-                    placeholder="任意メモ"
-                    type="text"
-                    value={currentValue.note}
-                  />
-                </label>
               </article>
             );
           })

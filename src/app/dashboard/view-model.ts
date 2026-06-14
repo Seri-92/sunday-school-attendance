@@ -129,10 +129,6 @@ export type AttendanceMonthOption = {
   value: string;
 };
 
-function normalizeDraftNote(note: string) {
-  return note.trim();
-}
-
 function normalizeExtraCountValue(value: string) {
   return value.trim() === "" ? "0" : value.trim();
 }
@@ -584,9 +580,6 @@ export function hasAttendanceDraftChanges(params: {
       return true;
     }
 
-    if (normalizeDraftNote(initialValue.note) !== normalizeDraftNote(draftValue.note)) {
-      return true;
-    }
   }
 
   return false;
