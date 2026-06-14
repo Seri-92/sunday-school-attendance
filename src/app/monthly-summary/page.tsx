@@ -12,11 +12,12 @@ import {
   buildAttendanceMonthOptions,
   buildMonthlyGroupAttendanceSummaries,
   buildWeeklyGroupAttendanceSummaries,
+  formatAttendanceAverageCount,
   formatAttendanceMonthLabel,
   getSundaysForAttendanceMonth,
   resolveAttendanceMonth,
   type AttendanceMonthOption,
-  type WeeklyGroupAttendanceSummary,
+  type MonthlyGroupAttendanceSummary,
 } from "@/app/dashboard/view-model";
 import type { WeeklyAttendanceGroup } from "@/db/schema";
 import { MonthSwitcher } from "./month-switcher";
@@ -68,7 +69,7 @@ function EmptyState(props: { monthOptions?: AttendanceMonthOption[] }) {
   );
 }
 
-function SummaryCard(props: { summary: WeeklyGroupAttendanceSummary }) {
+function SummaryCard(props: { summary: MonthlyGroupAttendanceSummary }) {
   const { summary } = props;
 
   return (
@@ -76,21 +77,21 @@ function SummaryCard(props: { summary: WeeklyGroupAttendanceSummary }) {
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-2xl font-semibold text-zinc-950">{summary.label}</h2>
         <div className="rounded-full bg-zinc-950 px-4 py-2 text-base font-semibold text-white">
-          {summary.totalCount} 名
+          平均 {formatAttendanceAverageCount(summary.averageCount)} 名
         </div>
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-3">
+      <dl className="mt-6 grid gap-3">
         <div className="rounded-2xl bg-zinc-50 p-4">
-          <dt className="text-sm font-medium text-zinc-600">生徒</dt>
-          <dd className="mt-2 text-5xl font-semibold tabular-nums text-zinc-950">
-            {summary.studentCount}
+          <dt className="text-sm font-medium text-zinc-600">
+            生徒と保護者を合計した平均人数
+          </dt>
+          <dd className="mt-2 text-6xl font-semibold tabular-nums text-zinc-950">
+            {formatAttendanceAverageCount(summary.averageCount)}
+            <span className="ml-2 text-2xl">名</span>
           </dd>
-        </div>
-        <div className="rounded-2xl bg-zinc-50 p-4">
-          <dt className="text-sm font-medium text-zinc-600">保護者</dt>
-          <dd className="mt-2 text-5xl font-semibold tabular-nums text-zinc-950">
-            {summary.guardianCount}
+          <dd className="mt-2 text-sm text-zinc-600">
+            {summary.weekCount} 回分の平均
           </dd>
         </div>
       </dl>
@@ -186,8 +187,6 @@ export default async function MonthlySummaryPage({
       studentsByClassId,
     }),
   }));
-  const totalCount = summaries.reduce((sum, summary) => sum + summary.totalCount, 0);
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(5,150,105,0.18),_transparent_34%),linear-gradient(180deg,#f7f8f4_0%,#eef4ef_100%)]">
       <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-8 sm:px-8 sm:py-12">
@@ -204,17 +203,11 @@ export default async function MonthlySummaryPage({
                 {formatAttendanceMonthLabel(selectedMonth)}
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="grid gap-4 sm:items-end">
               <MonthSwitcher
                 options={monthOptions}
                 selectedMonth={selectedMonth}
               />
-              <div className="rounded-2xl bg-emerald-50 px-5 py-4 text-emerald-950">
-                <p className="text-sm font-medium">月合計</p>
-                <p className="mt-1 text-4xl font-semibold tabular-nums">
-                  {totalCount} 名
-                </p>
-              </div>
             </div>
           </div>
         </header>
