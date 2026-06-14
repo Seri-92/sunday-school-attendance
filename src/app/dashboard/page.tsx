@@ -23,6 +23,7 @@ import {
   saveAttendanceAction,
   saveElementaryWeeklyAttendanceExtraAction,
   saveJuniorHighWeeklyAttendanceExtraAction,
+  updateStudentAction,
 } from "./actions";
 import {
   AttendanceDateSwitcher,
@@ -31,6 +32,7 @@ import {
   WeeklyAttendanceExtraForm,
 } from "./dashboard-client";
 import { StudentName } from "./student-name";
+import { StudentEditForm } from "./student-edit-form";
 import { StudentRegistrationForm } from "./student-registration-form";
 import {
   buildAttendanceEditorItems,
@@ -60,6 +62,7 @@ type DashboardPageProps = {
     notice?: string | string[];
     error?: string | string[];
     studentId?: string | string[];
+    mode?: string | string[];
   }>;
 };
 
@@ -152,6 +155,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const currentTab = getDashboardTab(getSingleValue(params.tab));
   const notice = getSingleValue(params.notice);
   const error = getSingleValue(params.error);
+  const currentMode = getSingleValue(params.mode);
 
   if (linkedTeacher.status !== "linked") {
     return (
@@ -395,6 +399,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         ).length,
       }
     : null;
+  const isEditingStudent = Boolean(selectedStudent && currentMode === "edit");
 
   const tabs: DashboardTab[] = ["week", "attendance", "students"];
   return (
@@ -684,7 +689,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           Student
                         </p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
-                          出席履歴
+                          {isEditingStudent ? "生徒情報を編集" : "出席履歴"}
                         </h2>
                         <div className="mt-3">
                           <StudentName
@@ -699,49 +704,89 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           </p>
                         </div>
                       </div>
-                      <Link
-                        className="inline-flex rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
-                        href={buildDashboardHref({
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Link
+                          className="inline-flex justify-center rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+                          href={buildDashboardHref({
+                            tab: "students",
+                            classId: selectedClass.id,
+                          })}
+                        >
+                          生徒一覧へ戻る
+                        </Link>
+                        {!isEditingStudent ? (
+                          <Link
+                            className="inline-flex justify-center px-2 py-2 text-sm font-medium text-zinc-500 underline-offset-4 hover:text-zinc-800 hover:underline"
+                            href={buildDashboardHref({
+                              tab: "students",
+                              classId: selectedClass.id,
+                              date: selectedDate,
+                              studentId: selectedStudent.studentId,
+                              mode: "edit",
+                            })}
+                          >
+                            生徒情報を編集
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {isEditingStudent ? (
+                      <StudentEditForm
+                        cancelHref={buildDashboardHref({
                           tab: "students",
                           classId: selectedClass.id,
+                          date: selectedDate,
+                          studentId: selectedStudent.studentId,
                         })}
-                      >
-                        生徒一覧へ戻る
-                      </Link>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      {[
-                        {
-                          count: selectedStudentAttendanceCounts.present,
-                          label: "出席",
-                          status: "present" as const,
-                        },
-                        {
-                          count: selectedStudentAttendanceCounts.absent,
-                          label: "欠席",
-                          status: "absent" as const,
-                        },
-                        {
-                          count: selectedStudentAttendanceCounts.unentered,
-                          label: "未入力",
-                          status: "unentered" as const,
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          className={`inline-flex min-w-[5.25rem] items-baseline justify-between gap-2 rounded-full border px-3 py-2 ${getAttendanceStatusTone(
-                            item.status,
-                          ).badgeClassName}`}
-                        >
-                          <span className="text-xs font-medium tracking-tight">{item.label}</span>
-                          <span className="text-base font-semibold tabular-nums">{item.count}</span>
+                        classId={selectedClass.id}
+                        firstName={selectedStudent.firstName}
+                        firstNameKana={selectedStudent.firstNameKana}
+                        gradeCode={selectedStudent.gradeCode}
+                        lastName={selectedStudent.lastName}
+                        lastNameKana={selectedStudent.lastNameKana}
+                        selectedDate={selectedDate}
+                        studentId={selectedStudent.studentId}
+                        updateStudentAction={updateStudentAction}
+                      />
+                    ) : (
+                      <>
+                        <div className="mt-6 flex flex-wrap gap-2">
+                          {[
+                            {
+                              count: selectedStudentAttendanceCounts.present,
+                              label: "出席",
+                              status: "present" as const,
+                            },
+                            {
+                              count: selectedStudentAttendanceCounts.absent,
+                              label: "欠席",
+                              status: "absent" as const,
+                            },
+                            {
+                              count: selectedStudentAttendanceCounts.unentered,
+                              label: "未入力",
+                              status: "unentered" as const,
+                            },
+                          ].map((item) => (
+                            <div
+                              key={item.label}
+                              className={`inline-flex min-w-[5.25rem] items-baseline justify-between gap-2 rounded-full border px-3 py-2 ${getAttendanceStatusTone(
+                                item.status,
+                              ).badgeClassName}`}
+                            >
+                              <span className="text-xs font-medium tracking-tight">
+                                {item.label}
+                              </span>
+                              <span className="text-base font-semibold tabular-nums">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
-                      <div className="flex flex-wrap gap-3 text-xs font-medium text-zinc-600">
+                        <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                          <div className="flex flex-wrap gap-3 text-xs font-medium text-zinc-600">
                         {[
                           { label: "出席", status: "present" as const },
                           { label: "欠席", status: "absent" as const },
@@ -826,6 +871,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         </p>
                       )}
                     </div>
+                      </>
+                    )}
                   </article>
                 ) : (
                   <>

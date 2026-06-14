@@ -10,6 +10,7 @@ import {
   attendanceRecords,
   studentClassAssignments,
   students,
+  type GradeCode,
   weeklyAttendanceExtraCounts,
 } from "@/db/schema";
 import {
@@ -18,6 +19,7 @@ import {
   getAuthorizedClass,
   getClassStudents,
   getSundaysInRange,
+  getTeacherClassesForYear,
   isAttendanceDateInScope,
   isAttendanceStatus,
   isGradeCode,
@@ -34,12 +36,15 @@ import {
 } from "@/lib/attendance-extra";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
+import { resolveDefaultClassForGrade } from "@/lib/student-class-assignment";
 import { buildStudentName } from "@/lib/students";
 
 function buildDashboardUrl(params: {
   tab?: string;
   classId?: string;
   date?: string;
+  studentId?: string;
+  mode?: string;
   notice?: string;
   error?: string;
 }) {
@@ -55,6 +60,14 @@ function buildDashboardUrl(params: {
 
   if (params.date) {
     searchParams.set("date", params.date);
+  }
+
+  if (params.studentId) {
+    searchParams.set("studentId", params.studentId);
+  }
+
+  if (params.mode) {
+    searchParams.set("mode", params.mode);
   }
 
   if (params.notice) {
@@ -132,40 +145,52 @@ async function findOrCreateAttendanceDate(params: {
   return attendanceDate;
 }
 
-export async function createStudentAction(formData: FormData) {
-  const teacher = await requireLinkedTeacherForAction();
-  const activeSchoolYear = await getActiveSchoolYear();
-  const tab = String(formData.get("tab") ?? "students");
-  const classId = String(formData.get("classId") ?? "");
-  const date = String(formData.get("date") ?? "");
+function getStudentNameInput(formData: FormData) {
   const lastName = String(formData.get("lastName") ?? "").trim();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastNameKana = String(formData.get("lastNameKana") ?? "").trim();
   const firstNameKana = String(formData.get("firstNameKana") ?? "").trim();
-  const gradeCode = String(formData.get("gradeCode") ?? "");
-  const studentName = buildStudentName({ lastName, firstName });
 
-  if (!activeSchoolYear) {
-    redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
-  }
+  return {
+    firstName,
+    firstNameKana,
+    lastName,
+    lastNameKana,
+  };
+}
 
-  if (!lastName || !firstName) {
+function validateStudentInput(params: {
+  classId: string;
+  date: string;
+  formData: FormData;
+  mode?: string;
+  studentId?: string;
+  tab: string;
+}) {
+  const nameInput = getStudentNameInput(params.formData);
+  const gradeCode = String(params.formData.get("gradeCode") ?? "");
+
+  if (!nameInput.lastName || !nameInput.firstName) {
     redirect(
       buildDashboardUrl({
-        tab,
-        classId,
-        date,
+        tab: params.tab,
+        classId: params.classId,
+        date: params.date,
+        studentId: params.studentId,
+        mode: params.mode,
         error: "姓と名を入力してください。",
       }),
     );
   }
 
-  if (!lastNameKana || !firstNameKana) {
+  if (!nameInput.lastNameKana || !nameInput.firstNameKana) {
     redirect(
       buildDashboardUrl({
-        tab,
-        classId,
-        date,
+        tab: params.tab,
+        classId: params.classId,
+        date: params.date,
+        studentId: params.studentId,
+        mode: params.mode,
         error: "せいとめいのふりがなを入力してください。",
       }),
     );
@@ -174,13 +199,35 @@ export async function createStudentAction(formData: FormData) {
   if (!isGradeCode(gradeCode)) {
     redirect(
       buildDashboardUrl({
-        tab,
-        classId,
-        date,
+        tab: params.tab,
+        classId: params.classId,
+        date: params.date,
+        studentId: params.studentId,
+        mode: params.mode,
         error: "学年の指定が不正です。",
       }),
     );
   }
+
+  return {
+    ...nameInput,
+    gradeCode: gradeCode as GradeCode,
+    studentName: buildStudentName(nameInput),
+  };
+}
+
+export async function createStudentAction(formData: FormData) {
+  const teacher = await requireLinkedTeacherForAction();
+  const activeSchoolYear = await getActiveSchoolYear();
+  const tab = String(formData.get("tab") ?? "students");
+  const classId = String(formData.get("classId") ?? "");
+  const date = String(formData.get("date") ?? "");
+
+  if (!activeSchoolYear) {
+    redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
+  }
+
+  const studentInput = validateStudentInput({ classId, date, formData, tab });
 
   const classRecord = await getAuthorizedClass(teacher, activeSchoolYear.id, classId);
 
@@ -196,11 +243,11 @@ export async function createStudentAction(formData: FormData) {
     const [student] = await tx
       .insert(students)
       .values({
-        lastName,
-        firstName,
-        lastNameKana,
-        firstNameKana,
-        currentGradeCode: gradeCode,
+        lastName: studentInput.lastName,
+        firstName: studentInput.firstName,
+        lastNameKana: studentInput.lastNameKana,
+        firstNameKana: studentInput.firstNameKana,
+        currentGradeCode: studentInput.gradeCode,
         active: true,
       })
       .returning({ id: students.id });
@@ -209,7 +256,7 @@ export async function createStudentAction(formData: FormData) {
       studentId: student.id,
       schoolYearId: activeSchoolYear.id,
       classId: classRecord.id,
-      gradeCode,
+      gradeCode: studentInput.gradeCode,
       assignmentType: "manual",
     });
   });
@@ -220,7 +267,114 @@ export async function createStudentAction(formData: FormData) {
       tab: "students",
       classId: classRecord.id,
       date,
-      notice: `${studentName} を ${classRecord.name} に登録しました。`,
+      notice: `${studentInput.studentName} を ${classRecord.name} に登録しました。`,
+    }),
+  );
+}
+
+export async function updateStudentAction(formData: FormData) {
+  const teacher = await requireLinkedTeacherForAction();
+  const activeSchoolYear = await getActiveSchoolYear();
+  const tab = "students";
+  const classId = String(formData.get("classId") ?? "");
+  const date = String(formData.get("date") ?? "");
+  const studentId = String(formData.get("studentId") ?? "");
+
+  if (!activeSchoolYear) {
+    redirect(buildDashboardUrl({ error: "有効な年度がありません。" }));
+  }
+
+  const studentInput = validateStudentInput({
+    classId,
+    date,
+    formData,
+    mode: "edit",
+    studentId,
+    tab,
+  });
+  const classRecord = await getAuthorizedClass(teacher, activeSchoolYear.id, classId);
+
+  if (!classRecord) {
+    redirect(
+      buildDashboardUrl({
+        error: "対象クラスへのアクセス権がありません。",
+      }),
+    );
+  }
+
+  const teacherClasses = await getTeacherClassesForYear(teacher, activeSchoolYear.id);
+  const teacherClassIds = new Set(teacherClasses.map((classItem) => classItem.id));
+  const defaultClass = resolveDefaultClassForGrade(teacherClasses, studentInput.gradeCode);
+
+  if (!defaultClass) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId,
+        date,
+        studentId,
+        mode: "edit",
+        error: "選択した学年に対応する通常クラスがありません。",
+      }),
+    );
+  }
+
+  const [assignment] = await db
+    .select({
+      assignmentId: studentClassAssignments.id,
+      classId: studentClassAssignments.classId,
+    })
+    .from(studentClassAssignments)
+    .where(
+      and(
+        eq(studentClassAssignments.schoolYearId, activeSchoolYear.id),
+        eq(studentClassAssignments.studentId, studentId),
+      ),
+    )
+    .limit(1);
+
+  if (!assignment || !teacherClassIds.has(assignment.classId)) {
+    redirect(
+      buildDashboardUrl({
+        tab,
+        classId,
+        error: "対象生徒へのアクセス権がありません。",
+      }),
+    );
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(students)
+      .set({
+        lastName: studentInput.lastName,
+        firstName: studentInput.firstName,
+        lastNameKana: studentInput.lastNameKana,
+        firstNameKana: studentInput.firstNameKana,
+        currentGradeCode: studentInput.gradeCode,
+        updatedAt: new Date(),
+      })
+      .where(eq(students.id, studentId));
+
+    await tx
+      .update(studentClassAssignments)
+      .set({
+        classId: defaultClass.id,
+        gradeCode: studentInput.gradeCode,
+        assignmentType: "auto",
+        updatedAt: new Date(),
+      })
+      .where(eq(studentClassAssignments.id, assignment.assignmentId));
+  });
+
+  revalidatePath("/dashboard");
+  redirect(
+    buildDashboardUrl({
+      tab,
+      classId: defaultClass.id,
+      date,
+      studentId,
+      notice: `${studentInput.studentName} の生徒情報を保存しました。`,
     }),
   );
 }

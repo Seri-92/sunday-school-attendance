@@ -933,6 +933,19 @@ test("buildDashboardHref includes studentId only when provided", () => {
   );
 });
 
+test("buildDashboardHref can link to student edit mode", () => {
+  assert.equal(
+    buildDashboardHref({
+      classId: "class-1",
+      date: "2026-04-05",
+      mode: "edit",
+      studentId: "student-1",
+      tab: "students",
+    }),
+    "/dashboard?tab=students&classId=class-1&date=2026-04-05&studentId=student-1&mode=edit",
+  );
+});
+
 test("buildDashboardHref can preserve date when linking to a student from another tab", () => {
   assert.equal(
     buildDashboardHref({

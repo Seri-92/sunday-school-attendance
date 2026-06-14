@@ -172,6 +172,7 @@ export function buildDashboardHref(params: {
   classId?: string;
   date?: string;
   studentId?: string;
+  mode?: "edit";
 }) {
   const searchParams = new URLSearchParams();
 
@@ -189,6 +190,10 @@ export function buildDashboardHref(params: {
 
   if (params.studentId) {
     searchParams.set("studentId", params.studentId);
+  }
+
+  if (params.mode) {
+    searchParams.set("mode", params.mode);
   }
 
   const query = searchParams.toString();
