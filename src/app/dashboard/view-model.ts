@@ -110,9 +110,11 @@ export type WeeklyGroupAttendanceSummary = {
 };
 
 export type MonthlyGroupAttendanceSummary = {
-  averageCount: number;
   group: WeeklyAttendanceGroup;
+  guardianAverageCount: number;
   label: string;
+  studentAverageCount: number;
+  totalAverageCount: number;
   weekCount: number;
 };
 
@@ -410,6 +412,7 @@ export function formatAttendanceAverageCount(value: number) {
 export function buildMonthlyGroupAttendanceSummaries(params: {
   classes: { gradeCode: GradeCode; id: string; name: string }[];
   dates: string[];
+  guardianCountsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>;
   records: AttendanceHistoryRecord[];
   studentsByClassId: Map<string, { studentId: string }[]>;
 }): MonthlyGroupAttendanceSummary[] {
@@ -432,6 +435,17 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
     elementary: 0,
     junior_high: 0,
   };
+  const guardianCounts: Record<WeeklyAttendanceGroup, number> = {
+    elementary: 0,
+    junior_high: 0,
+  };
+
+  for (const date of params.dates) {
+    const counts = params.guardianCountsByDate.get(date);
+
+    guardianCounts.elementary += counts?.elementary ?? 0;
+    guardianCounts.junior_high += counts?.junior_high ?? 0;
+  }
 
   for (const record of params.records) {
     if (!targetDates.has(record.attendanceDate)) {
@@ -449,18 +463,28 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
 
   const weekCount = params.dates.length;
   const divisor = weekCount > 0 ? weekCount : 1;
+  const elementaryStudentAverageCount = studentCounts.elementary / divisor;
+  const elementaryGuardianAverageCount = guardianCounts.elementary / divisor;
+  const juniorHighStudentAverageCount = studentCounts.junior_high / divisor;
+  const juniorHighGuardianAverageCount = guardianCounts.junior_high / divisor;
 
   return [
     {
-      averageCount: studentCounts.elementary / divisor,
       group: "elementary",
+      guardianAverageCount: elementaryGuardianAverageCount,
       label: "幼小科",
+      studentAverageCount: elementaryStudentAverageCount,
+      totalAverageCount:
+        elementaryStudentAverageCount + elementaryGuardianAverageCount,
       weekCount,
     },
     {
-      averageCount: studentCounts.junior_high / divisor,
       group: "junior_high",
+      guardianAverageCount: juniorHighGuardianAverageCount,
       label: "中学科",
+      studentAverageCount: juniorHighStudentAverageCount,
+      totalAverageCount:
+        juniorHighStudentAverageCount + juniorHighGuardianAverageCount,
       weekCount,
     },
   ];

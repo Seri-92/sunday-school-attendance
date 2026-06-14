@@ -295,7 +295,7 @@ test("resolveAttendanceMonth falls back to the current month option", () => {
   );
 });
 
-test("buildMonthlyGroupAttendanceSummaries averages weekly student attendance within one month", () => {
+test("buildMonthlyGroupAttendanceSummaries averages weekly student and guardian attendance within one month", () => {
   const summaries = buildMonthlyGroupAttendanceSummaries({
     classes: [
       {
@@ -310,6 +310,22 @@ test("buildMonthlyGroupAttendanceSummaries averages weekly student attendance wi
       },
     ],
     dates: ["2026-05-03", "2026-05-10"],
+    guardianCountsByDate: new Map([
+      [
+        "2026-05-03",
+        {
+          elementary: 4,
+          junior_high: 1,
+        },
+      ],
+      [
+        "2026-05-10",
+        {
+          elementary: 3,
+          junior_high: 2,
+        },
+      ],
+    ]),
     records: [
       {
         attendanceDate: "2026-05-03",
@@ -338,15 +354,19 @@ test("buildMonthlyGroupAttendanceSummaries averages weekly student attendance wi
 
   assert.deepEqual(summaries, [
     {
-      averageCount: 1,
       group: "elementary",
+      guardianAverageCount: 3.5,
       label: "幼小科",
+      studentAverageCount: 1,
+      totalAverageCount: 4.5,
       weekCount: 2,
     },
     {
-      averageCount: 0,
       group: "junior_high",
+      guardianAverageCount: 1.5,
       label: "中学科",
+      studentAverageCount: 0,
+      totalAverageCount: 1.5,
       weekCount: 2,
     },
   ]);
