@@ -171,7 +171,6 @@ function updateDraftState(params: {
   return {
     ...params.previousState,
     [params.studentId]: {
-      note: currentValue.note,
       status: params.nextStatus ?? currentValue.status,
     },
   };

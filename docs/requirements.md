@@ -126,7 +126,6 @@
 - `attendance_date_id`
 - `student_id`
 - `status`（出席 / 欠席 など）
-- `note`
 
 ## クラス割当ルール
 

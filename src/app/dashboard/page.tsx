@@ -306,7 +306,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         record.studentId,
         {
           status: normalizeAttendanceStatus(record.status),
-          note: record.note ?? "",
         },
       ]),
   );
@@ -384,9 +383,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     : [];
   const selectedStudentAttendanceCalendarMonths = buildStudentAttendanceCalendarMonths(
     selectedStudentAttendanceHistory,
-  );
-  const selectedStudentAttendanceNotes = selectedStudentAttendanceHistory.filter((item) =>
-    item.note.trim(),
   );
   const selectedStudentAttendanceCounts = selectedStudent
     ? {
@@ -838,39 +834,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       </div>
                     </div>
 
-                    <div className="mt-6">
-                      <h3 className="text-sm font-semibold text-zinc-700">メモ</h3>
-                      {selectedStudentAttendanceNotes.length > 0 ? (
-                        <div className="mt-3 space-y-2">
-                          {selectedStudentAttendanceNotes.map((item) => {
-                            const tone = getAttendanceStatusTone(item.status);
-
-                            return (
-                              <div
-                                key={item.date}
-                                className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                              >
-                                <div>
-                                  <p className="text-sm font-semibold text-zinc-950">
-                                    {formatAttendanceDateLabel(item.date)}
-                                  </p>
-                                  <p className="mt-1 text-sm text-zinc-600">{item.note}</p>
-                                </div>
-                                <span
-                                  className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${tone.badgeClassName}`}
-                                >
-                                  {getStudentHistoryStatusLabel(item.status)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="mt-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
-                          メモはありません。
-                        </p>
-                      )}
-                    </div>
                       </>
                     )}
                   </article>

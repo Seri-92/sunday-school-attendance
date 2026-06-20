@@ -5,7 +5,6 @@ import {
   integer,
   pgEnum,
   pgTable,
-  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -235,7 +234,6 @@ export const attendanceRecords = pgTable(
       .notNull()
       .references(() => students.id, { onDelete: "cascade" }),
     status: varchar("status", { length: 32 }).notNull(),
-    note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

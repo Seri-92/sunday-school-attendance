@@ -452,7 +452,6 @@ export async function saveAttendanceAction(formData: FormData) {
 
     for (const student of classStudents) {
       const rawStatus = String(formData.get(`status:${student.studentId}`) ?? "absent");
-      const rawNote = String(formData.get(`note:${student.studentId}`) ?? "").trim();
       const normalizedStatus = isAttendanceStatus(rawStatus) ? rawStatus : "absent";
 
       await tx
@@ -461,13 +460,11 @@ export async function saveAttendanceAction(formData: FormData) {
           attendanceDateId: attendanceDate.id,
           studentId: student.studentId,
           status: normalizedStatus,
-          note: rawNote || null,
         })
         .onConflictDoUpdate({
           target: [attendanceRecords.attendanceDateId, attendanceRecords.studentId],
           set: {
             status: normalizedStatus,
-            note: rawNote || null,
             updatedAt: new Date(),
           },
         });

@@ -36,7 +36,6 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
     [
       "student-1",
       {
-        note: "発熱のため",
         status: "absent",
       },
     ],
@@ -68,7 +67,6 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
 
   assert.deepEqual(items, [
     {
-      defaultNote: "発熱のため",
       defaultStatus: "absent",
       firstName: "太郎",
       firstNameKana: "たろう",
@@ -80,7 +78,6 @@ test("buildAttendanceEditorItems maps existing records and student metadata", ()
       studentName: "日曜 太郎",
     },
     {
-      defaultNote: "",
       defaultStatus: "absent",
       firstName: "花子",
       firstNameKana: "はなこ",
@@ -141,9 +138,9 @@ test("sortStudentsByGrade orders by grade and then by student kana", () => {
 test("getAttendanceCounts returns counts without making unentered negative", () => {
   const counts = getAttendanceCounts({
     selectedDateRecords: [
-      { note: "", status: "present" },
-      { note: "", status: "absent" },
-      { note: "", status: "present" },
+      { status: "present" },
+      { status: "absent" },
+      { status: "present" },
     ],
     studentCount: 2,
   });
@@ -183,31 +180,26 @@ test("buildWeeklyGroupAttendanceSummaries totals present students and guardians 
     records: [
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-kindergarten",
       },
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-elementary-present",
       },
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "absent",
         studentId: "student-elementary-absent",
       },
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-junior-high",
       },
       {
         attendanceDate: "2026-04-12",
-        note: null,
         status: "present",
         studentId: "student-elementary-absent",
       },
@@ -330,19 +322,16 @@ test("buildMonthlyGroupAttendanceSummaries averages weekly student and guardian 
     records: [
       {
         attendanceDate: "2026-05-03",
-        note: null,
         status: "present",
         studentId: "student-elementary",
       },
       {
         attendanceDate: "2026-05-10",
-        note: null,
         status: "present",
         studentId: "student-elementary",
       },
       {
         attendanceDate: "2026-05-10",
-        note: null,
         status: "absent",
         studentId: "student-junior-high",
       },
@@ -438,7 +427,6 @@ test("buildAttendanceDraftInitialState uses existing values and defaults missing
       [
         "student-1",
         {
-          note: "発熱のため",
           status: "absent",
         },
       ],
@@ -467,11 +455,9 @@ test("buildAttendanceDraftInitialState uses existing values and defaults missing
 
   assert.deepEqual(buildAttendanceDraftInitialState(items), {
     "student-1": {
-      note: "発熱のため",
       status: "absent",
     },
     "student-2": {
-      note: "",
       status: "absent",
     },
   });
@@ -582,14 +568,12 @@ test("isAttendanceEditorReadonly locks entered week and attendance tabs until fu
   );
 });
 
-test("hasAttendanceDraftChanges ignores notes but detects status changes", () => {
+test("hasAttendanceDraftChanges detects status changes", () => {
   const initialState = {
     "student-1": {
-      note: "連絡あり",
       status: "present" as const,
     },
     "student-2": {
-      note: "",
       status: "absent" as const,
     },
   };
@@ -598,11 +582,9 @@ test("hasAttendanceDraftChanges ignores notes but detects status changes", () =>
     hasAttendanceDraftChanges({
       draftState: {
         "student-1": {
-          note: "画面では使わないメモ",
           status: "present",
         },
         "student-2": {
-          note: "",
           status: "absent",
         },
       },
@@ -615,11 +597,9 @@ test("hasAttendanceDraftChanges ignores notes but detects status changes", () =>
     hasAttendanceDraftChanges({
       draftState: {
         "student-1": {
-          note: "連絡あり",
           status: "absent",
         },
         "student-2": {
-          note: "",
           status: "absent",
         },
       },
@@ -667,25 +647,21 @@ test("buildHistoryByDate aggregates only in-range dates and normalizes legacy ab
     records: [
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-1",
       },
       {
         attendanceDate: "2026-04-05",
-        note: "連絡あり",
         status: "excused",
         studentId: "student-2",
       },
       {
         attendanceDate: "2026-04-12",
-        note: null,
         status: "absent",
         studentId: "student-1",
       },
       {
         attendanceDate: "2026-05-03",
-        note: null,
         status: "present",
         studentId: "student-3",
       },
@@ -711,25 +687,21 @@ test("buildWeeklyAttendanceHistory returns readable weekly present-student summa
     records: [
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-3",
       },
       {
         attendanceDate: "2026-04-05",
-        note: null,
         status: "present",
         studentId: "student-1",
       },
       {
         attendanceDate: "2026-04-05",
-        note: "連絡あり",
         status: "excused",
         studentId: "student-2",
       },
       {
         attendanceDate: "2026-05-03",
-        note: null,
         status: "present",
         studentId: "student-1",
       },
@@ -823,19 +795,16 @@ test("buildStudentAttendanceHistory returns one student's records in sunday orde
     records: [
       {
         attendanceDate: "2026-04-05",
-        note: "少し遅刻",
         status: "present",
         studentId: "student-1",
       },
       {
         attendanceDate: "2026-04-05",
-        note: "別生徒のメモ",
         status: "absent",
         studentId: "student-2",
       },
       {
         attendanceDate: "2026-04-19",
-        note: "連絡あり",
         status: "absent",
         studentId: "student-1",
       },
@@ -847,17 +816,14 @@ test("buildStudentAttendanceHistory returns one student's records in sunday orde
   assert.deepEqual(history, [
     {
       date: "2026-04-05",
-      note: "少し遅刻",
       status: "present",
     },
     {
       date: "2026-04-12",
-      note: "",
       status: "unentered",
     },
     {
       date: "2026-04-19",
-      note: "連絡あり",
       status: "absent",
     },
   ]);
@@ -867,17 +833,14 @@ test("buildStudentAttendanceCalendarMonths groups student history by month", () 
   const history = [
     {
       date: "2026-04-05",
-      note: "",
       status: "present" as const,
     },
     {
       date: "2026-04-12",
-      note: "",
       status: "unentered" as const,
     },
     {
       date: "2026-05-03",
-      note: "連絡あり",
       status: "absent" as const,
     },
   ];

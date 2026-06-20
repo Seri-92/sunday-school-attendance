@@ -23,7 +23,6 @@ export type AttendanceEditorStudent = {
 
 export type SelectedDateRecord = {
   status: AttendanceStatus;
-  note: string;
 };
 
 export type AttendanceCounts = {
@@ -34,7 +33,6 @@ export type AttendanceCounts = {
 };
 
 export type AttendanceEditorItem = {
-  defaultNote: string;
   defaultStatus: AttendanceStatus;
   firstName: string;
   firstNameKana: string;
@@ -48,7 +46,6 @@ export type AttendanceEditorItem = {
 
 export type AttendanceHistoryRecord = {
   attendanceDate: string;
-  note: string | null;
   status: string;
   studentId: string;
 };
@@ -60,7 +57,6 @@ export type HistorySummary = {
 };
 
 export type AttendanceDraftValue = {
-  note: string;
   status: AttendanceStatus;
 };
 
@@ -97,7 +93,6 @@ export type WeeklyAttendanceHistoryItem = {
 
 export type StudentAttendanceHistoryItem = {
   date: string;
-  note: string;
   status: AttendanceStatus | "unentered";
 };
 
@@ -274,7 +269,6 @@ export function buildAttendanceEditorItems(params: {
     const existing = params.selectedDateRecords.get(student.studentId);
 
     return {
-      defaultNote: existing?.note ?? "",
       defaultStatus: existing?.status ?? "absent",
       firstName: student.firstName,
       firstNameKana: student.firstNameKana,
@@ -529,7 +523,6 @@ export function buildAttendanceDraftInitialState(items: AttendanceEditorItem[]):
     items.map((item) => [
       item.studentId,
       {
-        note: item.defaultNote,
         status: item.defaultStatus,
       },
     ]),
@@ -715,14 +708,12 @@ export function buildStudentAttendanceHistory(params: {
     if (!record) {
       return {
         date,
-        note: "",
         status: "unentered",
       };
     }
 
     return {
       date,
-      note: record.note ?? "",
       status: normalizeAttendanceStatus(record.status),
     };
   });

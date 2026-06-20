@@ -209,7 +209,6 @@ export async function getClassAttendanceRecords(
       attendanceDate: attendanceDates.date,
       studentId: attendanceRecords.studentId,
       status: attendanceRecords.status,
-      note: attendanceRecords.note,
     })
     .from(attendanceRecords)
     .innerJoin(attendanceDates, eq(attendanceRecords.attendanceDateId, attendanceDates.id))
