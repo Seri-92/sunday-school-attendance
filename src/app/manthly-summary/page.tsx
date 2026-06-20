@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { buildSummaryHref } from "@/app/dashboard/view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +25,5 @@ export default async function ManthlySummaryPage({
   const params = await searchParams;
   const month = getSingleValue(params.month);
 
-  redirect(
-    month
-      ? `/monthly-summary?month=${encodeURIComponent(month)}`
-      : "/monthly-summary",
-  );
+  redirect(buildSummaryHref({ month, view: "month" }));
 }

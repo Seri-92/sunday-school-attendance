@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 
 export type DashboardTab = "week" | "attendance" | "students";
+export type SummaryView = "week" | "month";
 
 export type AttendanceEditorStudent = {
   firstName: string;
@@ -196,6 +197,46 @@ export function buildDashboardHref(params: {
   return query ? `/dashboard?${query}` : "/dashboard";
 }
 
+export function resolveSummaryView(value: string | undefined): SummaryView {
+  return value === "month" ? "month" : "week";
+}
+
+export function buildSummaryHref(params: {
+  date?: string;
+  month?: string;
+  view?: SummaryView;
+}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.view) {
+    searchParams.set("view", params.view);
+  }
+
+  if (params.view === "week" && params.date) {
+    searchParams.set("date", params.date);
+  }
+
+  if (params.view === "month" && params.month) {
+    searchParams.set("month", params.month);
+  }
+
+  const query = searchParams.toString();
+
+  return query ? `/summary?${query}` : "/summary";
+}
+
+export function resolveSummarySelectedDate(params: {
+  defaultDate: string;
+  requestedDate?: string;
+  sundays: string[];
+}) {
+  if (params.requestedDate && params.sundays.includes(params.requestedDate)) {
+    return params.requestedDate;
+  }
+
+  return params.defaultDate;
+}
+
 export function resolveDashboardSelectedDate(params: {
   currentTab: DashboardTab;
   defaultDate: string;
@@ -347,9 +388,27 @@ const japanMonthFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Tokyo",
   year: "numeric",
 });
+const japanDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+});
 
 function getMonthInJapan(date: Date) {
-  return japanMonthFormatter.format(date).slice(0, 7);
+  const parts = Object.fromEntries(
+    japanMonthFormatter.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+
+  return `${parts.year}-${parts.month}`;
+}
+
+function getDateInJapan(date: Date) {
+  const parts = Object.fromEntries(
+    japanDateFormatter.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 export function formatAttendanceMonthLabel(month: string) {
@@ -383,6 +442,27 @@ export function buildAttendanceMonthOptions(params: {
       label: formatAttendanceMonthLabel(month),
       value: month,
     }));
+}
+
+export function buildSummaryDateOptions(params: {
+  selectedDate?: string;
+  sundays: string[];
+  today?: Date;
+}) {
+  const todayInJapan = getDateInJapan(params.today ?? new Date());
+  const dates = new Set(
+    params.sundays.filter((sunday) => sunday <= todayInJapan),
+  );
+
+  if (params.selectedDate && params.sundays.includes(params.selectedDate)) {
+    dates.add(params.selectedDate);
+  }
+
+  if (dates.size === 0 && params.sundays[0]) {
+    dates.add(params.sundays[0]);
+  }
+
+  return [...dates].sort((left, right) => right.localeCompare(left));
 }
 
 export function resolveAttendanceMonth(params: {

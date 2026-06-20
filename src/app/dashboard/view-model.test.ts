@@ -10,6 +10,8 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildAttendanceMonthOptions,
+  buildSummaryDateOptions,
+  buildSummaryHref,
   buildHistoryByDate,
   buildMonthlyGroupAttendanceSummaries,
   buildStudentAttendanceCalendarMonths,
@@ -27,6 +29,8 @@ import {
   isWeekAttendanceReadonly,
   resolveAttendanceMonth,
   resolveDashboardSelectedDate,
+  resolveSummarySelectedDate,
+  resolveSummaryView,
   sortStudentsByGrade,
   type SelectedDateRecord,
 } from "./view-model";
@@ -151,6 +155,70 @@ test("getAttendanceCounts returns counts without making unentered negative", () 
     presentCount: 2,
     unenteredCount: 0,
   });
+});
+
+test("resolveSummaryView defaults to week unless the monthly view is requested", () => {
+  assert.equal(resolveSummaryView("month"), "month");
+  assert.equal(resolveSummaryView("week"), "week");
+  assert.equal(resolveSummaryView("daily"), "week");
+  assert.equal(resolveSummaryView(undefined), "week");
+});
+
+test("buildSummaryHref keeps week and month navigation under the shared summary route", () => {
+  assert.equal(buildSummaryHref({ view: "week" }), "/summary?view=week");
+  assert.equal(
+    buildSummaryHref({ date: "2026-06-07", view: "week" }),
+    "/summary?view=week&date=2026-06-07",
+  );
+  assert.equal(
+    buildSummaryHref({ month: "2026-06", view: "month" }),
+    "/summary?view=month&month=2026-06",
+  );
+});
+
+test("buildSummaryDateOptions returns current and past weeks in descending order", () => {
+  assert.deepEqual(
+    buildSummaryDateOptions({
+      sundays: [
+        "2026-05-31",
+        "2026-06-07",
+        "2026-06-14",
+        "2026-06-21",
+      ],
+      today: new Date("2026-06-20T00:00:00+09:00"),
+    }),
+    ["2026-06-14", "2026-06-07", "2026-05-31"],
+  );
+});
+
+test("buildSummaryDateOptions keeps a selected future week when opened directly", () => {
+  assert.deepEqual(
+    buildSummaryDateOptions({
+      selectedDate: "2026-06-21",
+      sundays: ["2026-06-14", "2026-06-21", "2026-06-28"],
+      today: new Date("2026-06-20T00:00:00+09:00"),
+    }),
+    ["2026-06-21", "2026-06-14"],
+  );
+});
+
+test("resolveSummarySelectedDate accepts only known Sundays", () => {
+  assert.equal(
+    resolveSummarySelectedDate({
+      defaultDate: "2026-06-14",
+      requestedDate: "2026-06-07",
+      sundays: ["2026-06-07", "2026-06-14"],
+    }),
+    "2026-06-07",
+  );
+  assert.equal(
+    resolveSummarySelectedDate({
+      defaultDate: "2026-06-14",
+      requestedDate: "2026-06-08",
+      sundays: ["2026-06-07", "2026-06-14"],
+    }),
+    "2026-06-14",
+  );
 });
 
 test("buildWeeklyGroupAttendanceSummaries totals present students and guardians by weekly group", () => {

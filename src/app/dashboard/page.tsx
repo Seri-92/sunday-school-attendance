@@ -38,6 +38,7 @@ import {
   buildAttendanceEditorItems,
   buildAttendanceSummaryBadges,
   buildDashboardHref,
+  buildSummaryHref,
   buildStudentAttendanceCalendarMonths,
   buildStudentAttendanceHistory,
   buildWeeklyGroupAttendanceSummaries,
@@ -411,6 +412,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 {activeSchoolYear.label} の出席管理
               </h1>
             </div>
+            <Link
+              className="inline-flex shrink-0 rounded-full border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+              href={buildSummaryHref({ date: selectedDate, view: "week" })}
+            >
+              集計を見る
+            </Link>
           </div>
 
           <div className="mt-6 flex items-start justify-between gap-3 rounded-[1.5rem] bg-emerald-50 px-4 py-4">
