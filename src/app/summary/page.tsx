@@ -9,16 +9,20 @@ import {
   getClassStudents,
   getDefaultAttendanceDate,
   getSundaysInRange,
-  getWeeklyAttendanceExtraCounts,
+  getWeeklyAttendanceExtraCountsForDates,
 } from "@/lib/attendance";
 import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import {
   buildAttendanceMonthOptions,
   buildMonthlyGroupAttendanceSummaries,
+  buildMonthlySummaryTrendPoints,
+  buildPreviousAttendanceMonths,
+  buildPreviousSummaryDates,
   buildSummaryDateOptions,
   buildSummaryHref,
   buildWeeklyGroupAttendanceSummaries,
+  buildWeeklySummaryTrendPoints,
   formatAttendanceAverageCount,
   formatAttendanceMonthLabel,
   getSundaysForAttendanceMonth,
@@ -27,6 +31,7 @@ import {
   resolveSummaryView,
   type AttendanceMonthOption,
   type MonthlyGroupAttendanceSummary,
+  type SummaryTrendPoint,
   type SummaryView,
   type WeeklyGroupAttendanceSummary,
 } from "@/app/dashboard/view-model";
@@ -72,20 +77,48 @@ function getGuardianCount(
   return countsByDate.get(date)?.[group] ?? 0;
 }
 
-async function getWeeklyGuardianCounts(schoolYearId: string, date: string) {
-  const [elementaryWeeklyExtraCounts, juniorHighWeeklyExtraCounts] = await Promise.all([
-    getWeeklyAttendanceExtraCounts(schoolYearId, date, "elementary"),
-    getWeeklyAttendanceExtraCounts(schoolYearId, date, "junior_high"),
-  ]);
-
+function getGuardianCountsForDate(
+  countsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>,
+  date: string,
+) {
   return {
-    elementary:
-      elementaryWeeklyExtraCounts.find((record) => record.category === "guardian")
-        ?.headcount ?? 0,
-    junior_high:
-      juniorHighWeeklyExtraCounts.find((record) => record.category === "guardian")
-        ?.headcount ?? 0,
+    elementary: getGuardianCount(countsByDate, date, "elementary"),
+    junior_high: getGuardianCount(countsByDate, date, "junior_high"),
   };
+}
+
+async function getWeeklyGuardianCountsByDate(
+  schoolYearId: string,
+  dates: string[],
+) {
+  const uniqueDates = [...new Set(dates)];
+  const countsByDate = new Map<string, Record<WeeklyAttendanceGroup, number>>(
+    uniqueDates.map((date) => [
+      date,
+      {
+        elementary: 0,
+        junior_high: 0,
+      },
+    ]),
+  );
+  const rows = await getWeeklyAttendanceExtraCountsForDates(
+    schoolYearId,
+    uniqueDates,
+  );
+
+  for (const row of rows) {
+    if (row.category !== "guardian") {
+      continue;
+    }
+
+    const counts = countsByDate.get(row.date);
+
+    if (counts) {
+      counts[row.group] = row.headcount;
+    }
+  }
+
+  return countsByDate;
 }
 
 function EmptyState(props: {
@@ -280,6 +313,97 @@ function MonthlySummaryCard(props: { summary: MonthlyGroupAttendanceSummary }) {
   );
 }
 
+function SummaryTrendChart(props: {
+  emptyMessage: string;
+  heading: string;
+  points: SummaryTrendPoint[];
+  subtitle: string;
+  unitLabel: string;
+}) {
+  const maxTotal = Math.max(...props.points.map((point) => point.totalCount), 0);
+
+  return (
+    <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
+            Trend
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-zinc-950">
+            {props.heading}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">{props.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 text-sm font-medium text-zinc-600">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-emerald-600" />
+            幼小科
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-sky-600" />
+            中学科
+          </span>
+        </div>
+      </div>
+
+      {props.points.length === 0 ? (
+        <p className="mt-6 rounded-2xl bg-zinc-50 px-4 py-6 text-sm text-zinc-600">
+          {props.emptyMessage}
+        </p>
+      ) : (
+        <div className="mt-6 space-y-4">
+          {props.points.map((point) => {
+            const elementaryWidth =
+              maxTotal > 0 ? (point.elementaryCount / maxTotal) * 100 : 0;
+            const juniorHighWidth =
+              maxTotal > 0 ? (point.juniorHighCount / maxTotal) * 100 : 0;
+
+            return (
+              <div key={point.value} className="grid gap-2 sm:grid-cols-[8.5rem_1fr_5rem] sm:items-center">
+                <Link
+                  className="text-sm font-semibold text-zinc-800 underline-offset-4 hover:underline"
+                  href={point.href}
+                >
+                  {point.label}
+                </Link>
+                <div
+                  aria-label={`${point.label} ${props.unitLabel} ${formatAttendanceAverageCount(point.totalCount)} 名`}
+                  className="h-9 overflow-hidden rounded-full bg-zinc-100 ring-1 ring-inset ring-zinc-200"
+                  role="img"
+                >
+                  <div className="flex h-full min-w-1">
+                    <div
+                      className="bg-emerald-600"
+                      style={{ width: `${elementaryWidth}%` }}
+                    />
+                    <div
+                      className="bg-sky-600"
+                      style={{ width: `${juniorHighWidth}%` }}
+                    />
+                  </div>
+                </div>
+                <p className="text-right text-sm font-semibold tabular-nums text-zinc-950">
+                  {formatAttendanceAverageCount(point.totalCount)} 名
+                </p>
+                <dl className="grid grid-cols-2 gap-2 text-xs text-zinc-600 sm:col-start-2">
+                  <div>
+                    <dt className="sr-only">幼小科</dt>
+                    <dd>幼小科 {formatAttendanceAverageCount(point.elementaryCount)} 名</dd>
+                  </div>
+                  <div>
+                    <dt className="sr-only">中学科</dt>
+                    <dd>中学科 {formatAttendanceAverageCount(point.juniorHighCount)} 名</dd>
+                  </div>
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function SummaryPage({ searchParams }: SummaryPageProps) {
   await requireLinkedTeacherForSummary();
 
@@ -359,16 +483,36 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
   );
 
   if (currentView === "week") {
-    const guardianCounts = await getWeeklyGuardianCounts(
-      activeSchoolYear.id,
+    const previousWeeklyDates = buildPreviousSummaryDates({
       selectedDate,
+      sundays,
+    });
+    const guardianCountsByDate = await getWeeklyGuardianCountsByDate(
+      activeSchoolYear.id,
+      [selectedDate, ...previousWeeklyDates],
     );
     const summaries = buildWeeklyGroupAttendanceSummaries({
       classes,
       date: selectedDate,
-      guardianCounts,
+      guardianCounts: getGuardianCountsForDate(guardianCountsByDate, selectedDate),
       records,
       studentsByClassId,
+    });
+    const previousWeeklySummariesByDate = new Map(
+      previousWeeklyDates.map((date) => [
+        date,
+        buildWeeklyGroupAttendanceSummaries({
+          classes,
+          date,
+          guardianCounts: getGuardianCountsForDate(guardianCountsByDate, date),
+          records,
+          studentsByClassId,
+        }),
+      ]),
+    );
+    const weeklyTrendPoints = buildWeeklySummaryTrendPoints({
+      dates: previousWeeklyDates,
+      summariesByDate: previousWeeklySummariesByDate,
     });
     const totalCount = summaries.reduce((sum, summary) => sum + summary.totalCount, 0);
 
@@ -403,6 +547,14 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
             <WeeklySummaryCard key={summary.group} summary={summary} />
           ))}
         </section>
+
+        <SummaryTrendChart
+          emptyMessage="前の週の集計はまだありません。"
+          heading="前週までの推移"
+          points={weeklyTrendPoints}
+          subtitle="選択中の週の一つ前までの週次合計です。"
+          unitLabel="週次合計"
+        />
       </SummaryShell>
     );
   }
@@ -411,13 +563,20 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
     month: selectedMonth,
     sundays,
   });
-  const guardianCountsEntries = await Promise.all(
-    selectedDates.map(async (date) => [
-      date,
-      await getWeeklyGuardianCounts(activeSchoolYear.id, date),
-    ] as const),
+  const previousMonths = buildPreviousAttendanceMonths({
+    selectedMonth,
+    sundays,
+  });
+  const previousMonthDates = previousMonths.flatMap((month) =>
+    getSundaysForAttendanceMonth({
+      month,
+      sundays,
+    }),
   );
-  const guardianCountsByDate = new Map(guardianCountsEntries);
+  const guardianCountsByDate = await getWeeklyGuardianCountsByDate(
+    activeSchoolYear.id,
+    [...selectedDates, ...previousMonthDates],
+  );
   const summaries = buildMonthlyGroupAttendanceSummaries({
     classes,
     dates: selectedDates,
@@ -438,6 +597,29 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
       studentsByClassId,
     }),
   }));
+  const previousMonthlySummariesByMonth = new Map(
+    previousMonths.map((month) => {
+      const dates = getSundaysForAttendanceMonth({
+        month,
+        sundays,
+      });
+
+      return [
+        month,
+        buildMonthlyGroupAttendanceSummaries({
+          classes,
+          dates,
+          guardianCountsByDate,
+          records,
+          studentsByClassId,
+        }),
+      ] as const;
+    }),
+  );
+  const monthlyTrendPoints = buildMonthlySummaryTrendPoints({
+    months: previousMonths,
+    summariesByMonth: previousMonthlySummariesByMonth,
+  });
 
   return (
     <SummaryShell
@@ -453,6 +635,14 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
           <MonthlySummaryCard key={summary.group} summary={summary} />
         ))}
       </section>
+
+      <SummaryTrendChart
+        emptyMessage="前の月の集計はまだありません。"
+        heading="前月までの推移"
+        points={monthlyTrendPoints}
+        subtitle="選択中の月の一つ前までの月次平均です。"
+        unitLabel="月次平均"
+      />
 
       <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

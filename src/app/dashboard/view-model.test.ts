@@ -12,10 +12,14 @@ import {
   buildAttendanceMonthOptions,
   buildSummaryDateOptions,
   buildSummaryHref,
+  buildMonthlySummaryTrendPoints,
+  buildPreviousAttendanceMonths,
+  buildPreviousSummaryDates,
   buildHistoryByDate,
   buildMonthlyGroupAttendanceSummaries,
   buildStudentAttendanceCalendarMonths,
   buildStudentAttendanceHistory,
+  buildWeeklySummaryTrendPoints,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklyAttendanceHistory,
   canSubmitWeeklyAttendanceExtraForm,
@@ -221,6 +225,32 @@ test("resolveSummarySelectedDate accepts only known Sundays", () => {
   );
 });
 
+test("buildPreviousSummaryDates returns weeks before the selected week in chronological order", () => {
+  assert.deepEqual(
+    buildPreviousSummaryDates({
+      selectedDate: "2026-04-19",
+      sundays: ["2026-04-05", "2026-04-12", "2026-04-19", "2026-04-26"],
+    }),
+    ["2026-04-05", "2026-04-12"],
+  );
+});
+
+test("buildPreviousAttendanceMonths returns months before the selected month in chronological order", () => {
+  assert.deepEqual(
+    buildPreviousAttendanceMonths({
+      selectedMonth: "2026-06",
+      sundays: [
+        "2026-04-05",
+        "2026-04-12",
+        "2026-05-03",
+        "2026-06-07",
+        "2026-06-14",
+      ],
+    }),
+    ["2026-04", "2026-05"],
+  );
+});
+
 test("buildWeeklyGroupAttendanceSummaries totals present students and guardians by weekly group", () => {
   const summaries = buildWeeklyGroupAttendanceSummaries({
     classes: [
@@ -321,6 +351,74 @@ test("buildWeeklyGroupAttendanceSummaries totals present students and guardians 
   ]);
 });
 
+test("buildWeeklySummaryTrendPoints converts weekly summaries into graph points", () => {
+  const summariesByDate = new Map([
+    [
+      "2026-04-05",
+      [
+        {
+          group: "elementary" as const,
+          guardianCount: 3,
+          label: "幼小科",
+          studentCount: 5,
+          totalCount: 8,
+        },
+        {
+          group: "junior_high" as const,
+          guardianCount: 1,
+          label: "中学科",
+          studentCount: 2,
+          totalCount: 3,
+        },
+      ],
+    ],
+    [
+      "2026-04-12",
+      [
+        {
+          group: "elementary" as const,
+          guardianCount: 4,
+          label: "幼小科",
+          studentCount: 6,
+          totalCount: 10,
+        },
+        {
+          group: "junior_high" as const,
+          guardianCount: 2,
+          label: "中学科",
+          studentCount: 3,
+          totalCount: 5,
+        },
+      ],
+    ],
+  ]);
+
+  assert.deepEqual(
+    buildWeeklySummaryTrendPoints({
+      dates: ["2026-04-05", "2026-04-12"],
+      summariesByDate,
+    }),
+    [
+      {
+        elementaryCount: 8,
+        href: "/summary?view=week&date=2026-04-05",
+        juniorHighCount: 3,
+        label: "4月5日（日）",
+        totalCount: 11,
+        value: "2026-04-05",
+      },
+      {
+        elementaryCount: 10,
+        href: "/summary?view=week&date=2026-04-12",
+        juniorHighCount: 5,
+        label: "4月12日（日）",
+        totalCount: 15,
+        value: "2026-04-12",
+      },
+    ],
+  );
+});
+
 test("buildAttendanceMonthOptions returns current and past months in descending order", () => {
   const options = buildAttendanceMonthOptions({
     sundays: [
@@ -338,6 +436,49 @@ test("buildAttendanceMonthOptions returns current and past months in descending 
     { label: "2026年5月", value: "2026-05" },
     { label: "2026年4月", value: "2026-04" },
   ]);
+});
+
+test("buildMonthlySummaryTrendPoints converts monthly summaries into average graph points", () => {
+  const summariesByMonth = new Map([
+    [
+      "2026-04",
+      [
+        {
+          group: "elementary" as const,
+          guardianAverageCount: 2.5,
+          label: "幼小科",
+          studentAverageCount: 7,
+          totalAverageCount: 9.5,
+          weekCount: 2,
+        },
+        {
+          group: "junior_high" as const,
+          guardianAverageCount: 1,
+          label: "中学科",
+          studentAverageCount: 4,
+          totalAverageCount: 5,
+          weekCount: 2,
+        },
+      ],
+    ],
+  ]);
+
+  assert.deepEqual(
+    buildMonthlySummaryTrendPoints({
+      months: ["2026-04"],
+      summariesByMonth,
+    }),
+    [
+      {
+        elementaryCount: 9.5,
+        href: "/summary?view=month&month=2026-04",
+        juniorHighCount: 5,
+        label: "2026年4月",
+        totalCount: 14.5,
+        value: "2026-04",
+      },
+    ],
+  );
 });
 
 test("resolveAttendanceMonth falls back to the current month option", () => {

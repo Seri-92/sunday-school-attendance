@@ -120,6 +120,15 @@ export type MonthlyGroupAttendanceSummary = {
   weekCount: number;
 };
 
+export type SummaryTrendPoint = {
+  elementaryCount: number;
+  href: string;
+  juniorHighCount: number;
+  label: string;
+  totalCount: number;
+  value: string;
+};
+
 export type AttendanceMonthOption = {
   label: string;
   value: string;
@@ -421,6 +430,21 @@ export function formatAttendanceMonthLabel(month: string) {
   return `${match[1]}年${Number(match[2])}月`;
 }
 
+function formatSummaryTrendDateLabel(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00+09:00`);
+  const monthDay = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "long",
+    day: "numeric",
+  }).format(parsedDate);
+  const weekday = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    weekday: "short",
+  }).format(parsedDate);
+
+  return `${monthDay}（${weekday}）`;
+}
+
 export function buildAttendanceMonthOptions(params: {
   sundays: string[];
   today?: Date;
@@ -465,6 +489,32 @@ export function buildSummaryDateOptions(params: {
   return [...dates].sort((left, right) => right.localeCompare(left));
 }
 
+export function buildPreviousSummaryDates(params: {
+  selectedDate: string;
+  sundays: string[];
+}) {
+  return params.sundays
+    .filter((sunday) => sunday < params.selectedDate)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+export function buildPreviousAttendanceMonths(params: {
+  selectedMonth: string;
+  sundays: string[];
+}) {
+  const months = new Set<string>();
+
+  for (const sunday of params.sundays) {
+    const month = sunday.slice(0, 7);
+
+    if (month < params.selectedMonth) {
+      months.add(month);
+    }
+  }
+
+  return [...months].sort((left, right) => left.localeCompare(right));
+}
+
 export function resolveAttendanceMonth(params: {
   monthOptions: AttendanceMonthOption[];
   requestedMonth?: string;
@@ -488,6 +538,66 @@ export function getSundaysForAttendanceMonth(params: {
 
 export function formatAttendanceAverageCount(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function getWeeklySummaryTotalCount(
+  summaries: WeeklyGroupAttendanceSummary[] | undefined,
+  group: WeeklyAttendanceGroup,
+) {
+  return summaries?.find((summary) => summary.group === group)?.totalCount ?? 0;
+}
+
+function getMonthlySummaryTotalAverageCount(
+  summaries: MonthlyGroupAttendanceSummary[] | undefined,
+  group: WeeklyAttendanceGroup,
+) {
+  return summaries?.find((summary) => summary.group === group)?.totalAverageCount ?? 0;
+}
+
+export function buildWeeklySummaryTrendPoints(params: {
+  dates: string[];
+  summariesByDate: Map<string, WeeklyGroupAttendanceSummary[]>;
+}): SummaryTrendPoint[] {
+  return params.dates.map((date) => {
+    const summaries = params.summariesByDate.get(date);
+    const elementaryCount = getWeeklySummaryTotalCount(summaries, "elementary");
+    const juniorHighCount = getWeeklySummaryTotalCount(summaries, "junior_high");
+
+    return {
+      elementaryCount,
+      href: buildSummaryHref({ date, view: "week" }),
+      juniorHighCount,
+      label: formatSummaryTrendDateLabel(date),
+      totalCount: elementaryCount + juniorHighCount,
+      value: date,
+    };
+  });
+}
+
+export function buildMonthlySummaryTrendPoints(params: {
+  months: string[];
+  summariesByMonth: Map<string, MonthlyGroupAttendanceSummary[]>;
+}): SummaryTrendPoint[] {
+  return params.months.map((month) => {
+    const summaries = params.summariesByMonth.get(month);
+    const elementaryCount = getMonthlySummaryTotalAverageCount(
+      summaries,
+      "elementary",
+    );
+    const juniorHighCount = getMonthlySummaryTotalAverageCount(
+      summaries,
+      "junior_high",
+    );
+
+    return {
+      elementaryCount,
+      href: buildSummaryHref({ month, view: "month" }),
+      juniorHighCount,
+      label: formatAttendanceMonthLabel(month),
+      totalCount: elementaryCount + juniorHighCount,
+      value: month,
+    };
+  });
 }
 
 export function buildMonthlyGroupAttendanceSummaries(params: {

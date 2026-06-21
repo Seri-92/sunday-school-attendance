@@ -268,3 +268,32 @@ export async function getWeeklyAttendanceExtraCounts(
       ),
     );
 }
+
+export async function getWeeklyAttendanceExtraCountsForDates(
+  schoolYearId: string,
+  dates: string[],
+) {
+  if (dates.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      date: attendanceDates.date,
+      category: weeklyAttendanceExtraCounts.category,
+      group: weeklyAttendanceExtraCounts.group,
+      headcount: weeklyAttendanceExtraCounts.headcount,
+    })
+    .from(weeklyAttendanceExtraCounts)
+    .innerJoin(
+      attendanceDates,
+      eq(weeklyAttendanceExtraCounts.attendanceDateId, attendanceDates.id),
+    )
+    .where(
+      and(
+        eq(attendanceDates.schoolYearId, schoolYearId),
+        inArray(attendanceDates.date, dates),
+      ),
+    )
+    .orderBy(asc(attendanceDates.date));
+}
