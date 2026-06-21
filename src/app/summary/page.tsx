@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import {
   formatAttendanceDateLabel,
@@ -11,8 +10,6 @@ import {
   getSundaysInRange,
   getWeeklyAttendanceExtraCountsForDates,
 } from "@/lib/attendance";
-import { requireSession } from "@/lib/auth/session";
-import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import {
   buildAttendanceMonthOptions,
   buildMonthlyGroupAttendanceSummaries,
@@ -55,18 +52,6 @@ type SummaryPageProps = {
 
 function getSingleValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-async function requireLinkedTeacherForSummary() {
-  const session = await requireSession();
-  const linkedTeacher = await syncTeacherAuthUser({
-    id: session.user.id,
-    email: session.user.email,
-  });
-
-  if (linkedTeacher.status !== "linked") {
-    redirect("/dashboard");
-  }
 }
 
 function getGuardianCount(
@@ -405,8 +390,6 @@ function SummaryTrendChart(props: {
 }
 
 export default async function SummaryPage({ searchParams }: SummaryPageProps) {
-  await requireLinkedTeacherForSummary();
-
   const activeSchoolYear = await getActiveSchoolYear();
 
   if (!activeSchoolYear) {
