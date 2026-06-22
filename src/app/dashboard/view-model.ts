@@ -129,6 +129,39 @@ export type SummaryTrendPoint = {
   value: string;
 };
 
+export type SummaryTrendLineSeriesKey = "total" | "elementary" | "junior_high";
+
+export type SummaryTrendLineChartPoint = {
+  count: number;
+  href: string;
+  label: string;
+  value: string;
+  x: number;
+  y: number;
+};
+
+export type SummaryTrendLineChartSeries = {
+  key: SummaryTrendLineSeriesKey;
+  label: string;
+  points: SummaryTrendLineChartPoint[];
+  polylinePoints: string;
+};
+
+export type SummaryTrendLineChartLabel = {
+  href?: string;
+  label: string;
+  value: number | string;
+  x?: number;
+  y?: number;
+};
+
+export type SummaryTrendLineChart = {
+  maxValue: number;
+  series: SummaryTrendLineChartSeries[];
+  xLabels: SummaryTrendLineChartLabel[];
+  yAxisLabels: SummaryTrendLineChartLabel[];
+};
+
 export type AttendanceMonthOption = {
   label: string;
   value: string;
@@ -598,6 +631,121 @@ export function buildMonthlySummaryTrendPoints(params: {
       value: month,
     };
   });
+}
+
+function roundChartCoordinate(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function getSummaryTrendChartMaxValue(points: SummaryTrendPoint[]) {
+  const maxCount = Math.max(
+    ...points.flatMap((point) => [
+      point.totalCount,
+      point.elementaryCount,
+      point.juniorHighCount,
+    ]),
+    0,
+  );
+
+  return maxCount > 0 ? Math.ceil(maxCount / 5) * 5 : 1;
+}
+
+export function buildSummaryTrendLineChart(params: {
+  height?: number;
+  padding?: {
+    bottom: number;
+    left: number;
+    right: number;
+    top: number;
+  };
+  points: SummaryTrendPoint[];
+  width?: number;
+}): SummaryTrendLineChart {
+  const width = params.width ?? 720;
+  const height = params.height ?? 260;
+  const padding = params.padding ?? {
+    bottom: 44,
+    left: 48,
+    right: 24,
+    top: 18,
+  };
+  const plotWidth = Math.max(width - padding.left - padding.right, 0);
+  const plotHeight = Math.max(height - padding.top - padding.bottom, 0);
+  const maxValue = getSummaryTrendChartMaxValue(params.points);
+  const getX = (index: number) => {
+    if (params.points.length <= 1) {
+      return roundChartCoordinate(padding.left + plotWidth / 2);
+    }
+
+    return roundChartCoordinate(
+      padding.left + (plotWidth * index) / (params.points.length - 1),
+    );
+  };
+  const getY = (count: number) =>
+    roundChartCoordinate(
+      padding.top + plotHeight - (count / maxValue) * plotHeight,
+    );
+  const seriesDefinitions: {
+    getCount: (point: SummaryTrendPoint) => number;
+    key: SummaryTrendLineSeriesKey;
+    label: string;
+  }[] = [
+    {
+      getCount: (point) => point.totalCount,
+      key: "total",
+      label: "合計",
+    },
+    {
+      getCount: (point) => point.elementaryCount,
+      key: "elementary",
+      label: "幼小科",
+    },
+    {
+      getCount: (point) => point.juniorHighCount,
+      key: "junior_high",
+      label: "中学科",
+    },
+  ];
+  const xLabels = params.points.map((point, index) => ({
+    href: point.href,
+    label: point.label,
+    value: point.value,
+    x: getX(index),
+  }));
+  const yAxisValues = [maxValue, maxValue / 2, 0];
+  const yAxisLabels = yAxisValues.map((value) => ({
+    label: formatAttendanceAverageCount(value),
+    value,
+    y: getY(value),
+  }));
+  const series = seriesDefinitions.map((definition) => {
+    const points = params.points.map((point, index) => {
+      const count = definition.getCount(point);
+
+      return {
+        count,
+        href: point.href,
+        label: point.label,
+        value: point.value,
+        x: getX(index),
+        y: getY(count),
+      };
+    });
+
+    return {
+      key: definition.key,
+      label: definition.label,
+      points,
+      polylinePoints: points.map((point) => `${point.x},${point.y}`).join(" "),
+    };
+  });
+
+  return {
+    maxValue,
+    series,
+    xLabels,
+    yAxisLabels,
+  };
 }
 
 export function buildMonthlyGroupAttendanceSummaries(params: {

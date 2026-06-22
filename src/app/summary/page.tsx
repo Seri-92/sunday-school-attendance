@@ -18,6 +18,7 @@ import {
   buildPreviousSummaryDates,
   buildSummaryDateOptions,
   buildSummaryHref,
+  buildSummaryTrendLineChart,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklySummaryTrendPoints,
   formatAttendanceAverageCount,
@@ -28,6 +29,7 @@ import {
   resolveSummaryView,
   type AttendanceMonthOption,
   type MonthlyGroupAttendanceSummary,
+  type SummaryTrendLineSeriesKey,
   type SummaryTrendPoint,
   type SummaryView,
   type WeeklyGroupAttendanceSummary,
@@ -305,7 +307,27 @@ function SummaryTrendChart(props: {
   subtitle: string;
   unitLabel: string;
 }) {
-  const maxTotal = Math.max(...props.points.map((point) => point.totalCount), 0);
+  const chartWidth = 720;
+  const chartHeight = 260;
+  const chart = buildSummaryTrendLineChart({
+    height: chartHeight,
+    points: props.points,
+    width: chartWidth,
+  });
+  const seriesClassNames: Record<SummaryTrendLineSeriesKey, string> = {
+    elementary: "stroke-emerald-600 fill-emerald-600",
+    junior_high: "stroke-sky-600 fill-sky-600",
+    total: "stroke-zinc-950 fill-zinc-950",
+  };
+  const visibleXAxisLabels = chart.xLabels.filter((_, index) => {
+    if (chart.xLabels.length <= 6) {
+      return true;
+    }
+
+    const interval = Math.ceil((chart.xLabels.length - 1) / 4);
+
+    return index === 0 || index === chart.xLabels.length - 1 || index % interval === 0;
+  });
 
   return (
     <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
@@ -320,6 +342,10 @@ function SummaryTrendChart(props: {
           <p className="mt-2 text-sm leading-6 text-zinc-600">{props.subtitle}</p>
         </div>
         <div className="flex flex-wrap gap-3 text-sm font-medium text-zinc-600">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-zinc-950" />
+            合計
+          </span>
           <span className="inline-flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-emerald-600" />
             幼小科
@@ -336,53 +362,100 @@ function SummaryTrendChart(props: {
           {props.emptyMessage}
         </p>
       ) : (
-        <div className="mt-6 space-y-4">
-          {props.points.map((point) => {
-            const elementaryWidth =
-              maxTotal > 0 ? (point.elementaryCount / maxTotal) * 100 : 0;
-            const juniorHighWidth =
-              maxTotal > 0 ? (point.juniorHighCount / maxTotal) * 100 : 0;
+        <div className="mt-6">
+          <div className="overflow-x-auto rounded-2xl bg-zinc-50 p-3 ring-1 ring-inset ring-zinc-200">
+            <svg
+              aria-label={`${props.heading} ${props.unitLabel}`}
+              className="min-w-[44rem]"
+              role="img"
+              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            >
+              {chart.yAxisLabels.map((label) => (
+                <g key={label.value}>
+                  <line
+                    className="stroke-zinc-200"
+                    strokeWidth="1"
+                    x1="48"
+                    x2="696"
+                    y1={label.y}
+                    y2={label.y}
+                  />
+                  <text
+                    className="fill-zinc-500 text-[12px] tabular-nums"
+                    textAnchor="end"
+                    x="38"
+                    y={(label.y ?? 0) + 4}
+                  >
+                    {label.label}
+                  </text>
+                </g>
+              ))}
 
-            return (
-              <div key={point.value} className="grid gap-2 sm:grid-cols-[8.5rem_1fr_5rem] sm:items-center">
-                <Link
-                  className="text-sm font-semibold text-zinc-800 underline-offset-4 hover:underline"
-                  href={point.href}
-                >
-                  {point.label}
-                </Link>
-                <div
-                  aria-label={`${point.label} ${props.unitLabel} ${formatAttendanceAverageCount(point.totalCount)} 名`}
-                  className="h-9 overflow-hidden rounded-full bg-zinc-100 ring-1 ring-inset ring-zinc-200"
-                  role="img"
-                >
-                  <div className="flex h-full min-w-1">
-                    <div
-                      className="bg-emerald-600"
-                      style={{ width: `${elementaryWidth}%` }}
+              {visibleXAxisLabels.map((label) => (
+                <g key={label.value}>
+                  <line
+                    className="stroke-zinc-300"
+                    strokeWidth="1"
+                    x1={label.x}
+                    x2={label.x}
+                    y1="218"
+                    y2="224"
+                  />
+                  <text
+                    className="fill-zinc-500 text-[12px]"
+                    textAnchor="middle"
+                    x={label.x}
+                    y="244"
+                  >
+                    {label.label}
+                  </text>
+                </g>
+              ))}
+
+              {chart.series.map((series) => (
+                <g key={series.key}>
+                  <polyline
+                    className={`${seriesClassNames[series.key]} ${series.key === "total" ? "" : "opacity-80"}`}
+                    fill="none"
+                    points={series.polylinePoints}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={series.key === "total" ? 4 : 3}
+                  />
+                  {series.points.map((point) => (
+                    <circle
+                      key={`${series.key}-${point.value}`}
+                      aria-label={`${point.label} ${series.label} ${formatAttendanceAverageCount(point.count)} 名`}
+                      className={`${seriesClassNames[series.key]} stroke-white`}
+                      cx={point.x}
+                      cy={point.y}
+                      r={series.key === "total" ? 5 : 4}
+                      strokeWidth="2"
                     />
-                    <div
-                      className="bg-sky-600"
-                      style={{ width: `${juniorHighWidth}%` }}
-                    />
-                  </div>
-                </div>
-                <p className="text-right text-sm font-semibold tabular-nums text-zinc-950">
+                  ))}
+                </g>
+              ))}
+            </svg>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {props.points.map((point) => (
+              <Link
+                key={point.value}
+                className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+                href={point.href}
+              >
+                <span className="font-semibold text-zinc-900">{point.label}</span>
+                <span className="mt-2 block font-semibold tabular-nums text-zinc-950">
                   {formatAttendanceAverageCount(point.totalCount)} 名
-                </p>
-                <dl className="grid grid-cols-2 gap-2 text-xs text-zinc-600 sm:col-start-2">
-                  <div>
-                    <dt className="sr-only">幼小科</dt>
-                    <dd>幼小科 {formatAttendanceAverageCount(point.elementaryCount)} 名</dd>
-                  </div>
-                  <div>
-                    <dt className="sr-only">中学科</dt>
-                    <dd>中学科 {formatAttendanceAverageCount(point.juniorHighCount)} 名</dd>
-                  </div>
-                </dl>
-              </div>
-            );
-          })}
+                </span>
+                <span className="mt-1 block text-xs text-zinc-600">
+                  幼小科 {formatAttendanceAverageCount(point.elementaryCount)} 名 / 中学科{" "}
+                  {formatAttendanceAverageCount(point.juniorHighCount)} 名
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </section>
@@ -533,9 +606,9 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
 
         <SummaryTrendChart
           emptyMessage="前の週の集計はまだありません。"
-          heading="前週までの推移"
+          heading="前週までの出席推移"
           points={weeklyTrendPoints}
-          subtitle="選択中の週の一つ前までの週次合計です。"
+          subtitle="入力途中の可能性がある選択中の週を除いた、前週までの週次合計です。"
           unitLabel="週次合計"
         />
       </SummaryShell>
@@ -621,9 +694,9 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
 
       <SummaryTrendChart
         emptyMessage="前の月の集計はまだありません。"
-        heading="前月までの推移"
+        heading="前月までの出席推移"
         points={monthlyTrendPoints}
-        subtitle="選択中の月の一つ前までの月次平均です。"
+        subtitle="入力途中の可能性がある選択中の月を除いた、前月までの月次平均です。"
         unitLabel="月次平均"
       />
 
