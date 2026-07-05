@@ -12,12 +12,12 @@ import {
   buildAttendanceMonthOptions,
   buildSummaryDateOptions,
   buildSummaryHref,
+  buildSummaryTrendChartRows,
   buildMonthlySummaryTrendPoints,
   buildPreviousAttendanceMonths,
   buildPreviousSummaryDates,
   buildHistoryByDate,
   buildMonthlyGroupAttendanceSummaries,
-  buildSummaryTrendLineChart,
   buildStudentAttendanceCalendarMonths,
   buildStudentAttendanceHistory,
   buildWeeklySummaryTrendPoints,
@@ -482,79 +482,51 @@ test("buildMonthlySummaryTrendPoints converts monthly summaries into average gra
   );
 });
 
-test("buildSummaryTrendLineChart converts trend points into line series coordinates", () => {
-  const chart = buildSummaryTrendLineChart({
-    height: 140,
-    padding: {
-      bottom: 30,
-      left: 40,
-      right: 20,
-      top: 10,
-    },
-    points: [
+test("buildSummaryTrendChartRows adds display labels for totals and breakdowns", () => {
+  assert.deepEqual(
+    buildSummaryTrendChartRows([
       {
-        elementaryCount: 5,
-        href: "/summary?view=week&date=2026-04-05",
-        juniorHighCount: 3,
-        label: "4月5日（日）",
-        totalCount: 8,
-        value: "2026-04-05",
+        elementaryCount: 9.5,
+        href: "/summary?view=month&month=2026-04",
+        juniorHighCount: 5,
+        label: "2026年4月",
+        totalCount: 14.5,
+        value: "2026-04",
       },
       {
         elementaryCount: 10,
-        href: "/summary?view=week&date=2026-04-12",
+        href: "/summary?view=month&month=2026-05",
+        juniorHighCount: 4,
+        label: "2026年5月",
+        totalCount: 14,
+        value: "2026-05",
+      },
+    ]),
+    [
+      {
+        elementaryCount: 9.5,
+        elementaryLabel: "9.5 名",
+        href: "/summary?view=month&month=2026-04",
         juniorHighCount: 5,
-        label: "4月12日（日）",
-        totalCount: 15,
-        value: "2026-04-12",
-      },
-    ],
-    width: 240,
-  });
-
-  assert.equal(chart.maxValue, 15);
-  assert.deepEqual(chart.xLabels, [
-    {
-      href: "/summary?view=week&date=2026-04-05",
-      label: "4月5日（日）",
-      value: "2026-04-05",
-      x: 40,
-    },
-    {
-      href: "/summary?view=week&date=2026-04-12",
-      label: "4月12日（日）",
-      value: "2026-04-12",
-      x: 220,
-    },
-  ]);
-  assert.deepEqual(chart.yAxisLabels, [
-    { label: "15", value: 15, y: 10 },
-    { label: "7.5", value: 7.5, y: 60 },
-    { label: "0", value: 0, y: 110 },
-  ]);
-  assert.deepEqual(chart.series[0], {
-    key: "total",
-    label: "合計",
-    points: [
-      {
-        count: 8,
-        href: "/summary?view=week&date=2026-04-05",
-        label: "4月5日（日）",
-        value: "2026-04-05",
-        x: 40,
-        y: 56.67,
+        juniorHighLabel: "5 名",
+        label: "2026年4月",
+        totalCount: 14.5,
+        totalLabel: "14.5 名",
+        value: "2026-04",
       },
       {
-        count: 15,
-        href: "/summary?view=week&date=2026-04-12",
-        label: "4月12日（日）",
-        value: "2026-04-12",
-        x: 220,
-        y: 10,
+        elementaryCount: 10,
+        elementaryLabel: "10 名",
+        href: "/summary?view=month&month=2026-05",
+        juniorHighCount: 4,
+        juniorHighLabel: "4 名",
+        label: "2026年5月",
+        totalCount: 14,
+        totalLabel: "14 名",
+        value: "2026-05",
       },
     ],
-    polylinePoints: "40,56.67 220,10",
-  });
+  );
 });
 
 test("resolveAttendanceMonth falls back to the current month option", () => {

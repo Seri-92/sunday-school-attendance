@@ -18,7 +18,7 @@ import {
   buildPreviousSummaryDates,
   buildSummaryDateOptions,
   buildSummaryHref,
-  buildSummaryTrendLineChart,
+  buildSummaryTrendChartRows,
   buildWeeklyGroupAttendanceSummaries,
   buildWeeklySummaryTrendPoints,
   formatAttendanceAverageCount,
@@ -29,12 +29,11 @@ import {
   resolveSummaryView,
   type AttendanceMonthOption,
   type MonthlyGroupAttendanceSummary,
-  type SummaryTrendLineSeriesKey,
-  type SummaryTrendPoint,
   type SummaryView,
   type WeeklyGroupAttendanceSummary,
 } from "@/app/dashboard/view-model";
 import type { WeeklyAttendanceGroup } from "@/db/schema";
+import { SummaryTrendChart } from "./summary-trend-chart";
 import { SummaryMonthSwitcher, SummaryWeekSwitcher } from "./summary-switchers";
 
 export const dynamic = "force-dynamic";
@@ -300,168 +299,6 @@ function MonthlySummaryCard(props: { summary: MonthlyGroupAttendanceSummary }) {
   );
 }
 
-function SummaryTrendChart(props: {
-  emptyMessage: string;
-  heading: string;
-  points: SummaryTrendPoint[];
-  subtitle: string;
-  unitLabel: string;
-}) {
-  const chartWidth = 720;
-  const chartHeight = 260;
-  const chart = buildSummaryTrendLineChart({
-    height: chartHeight,
-    points: props.points,
-    width: chartWidth,
-  });
-  const seriesClassNames: Record<SummaryTrendLineSeriesKey, string> = {
-    elementary: "stroke-emerald-600 fill-emerald-600",
-    junior_high: "stroke-sky-600 fill-sky-600",
-    total: "stroke-zinc-950 fill-zinc-950",
-  };
-  const visibleXAxisLabels = chart.xLabels.filter((_, index) => {
-    if (chart.xLabels.length <= 6) {
-      return true;
-    }
-
-    const interval = Math.ceil((chart.xLabels.length - 1) / 4);
-
-    return index === 0 || index === chart.xLabels.length - 1 || index % interval === 0;
-  });
-
-  return (
-    <section className="mt-6 rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">
-            Trend
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-950">
-            {props.heading}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">{props.subtitle}</p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-sm font-medium text-zinc-600">
-          <span className="inline-flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-zinc-950" />
-            合計
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-emerald-600" />
-            幼小科
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-sky-600" />
-            中学科
-          </span>
-        </div>
-      </div>
-
-      {props.points.length === 0 ? (
-        <p className="mt-6 rounded-2xl bg-zinc-50 px-4 py-6 text-sm text-zinc-600">
-          {props.emptyMessage}
-        </p>
-      ) : (
-        <div className="mt-6">
-          <div className="overflow-x-auto rounded-2xl bg-zinc-50 p-3 ring-1 ring-inset ring-zinc-200">
-            <svg
-              aria-label={`${props.heading} ${props.unitLabel}`}
-              className="min-w-[44rem]"
-              role="img"
-              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            >
-              {chart.yAxisLabels.map((label) => (
-                <g key={label.value}>
-                  <line
-                    className="stroke-zinc-200"
-                    strokeWidth="1"
-                    x1="48"
-                    x2="696"
-                    y1={label.y}
-                    y2={label.y}
-                  />
-                  <text
-                    className="fill-zinc-500 text-[12px] tabular-nums"
-                    textAnchor="end"
-                    x="38"
-                    y={(label.y ?? 0) + 4}
-                  >
-                    {label.label}
-                  </text>
-                </g>
-              ))}
-
-              {visibleXAxisLabels.map((label) => (
-                <g key={label.value}>
-                  <line
-                    className="stroke-zinc-300"
-                    strokeWidth="1"
-                    x1={label.x}
-                    x2={label.x}
-                    y1="218"
-                    y2="224"
-                  />
-                  <text
-                    className="fill-zinc-500 text-[12px]"
-                    textAnchor="middle"
-                    x={label.x}
-                    y="244"
-                  >
-                    {label.label}
-                  </text>
-                </g>
-              ))}
-
-              {chart.series.map((series) => (
-                <g key={series.key}>
-                  <polyline
-                    className={`${seriesClassNames[series.key]} ${series.key === "total" ? "" : "opacity-80"}`}
-                    fill="none"
-                    points={series.polylinePoints}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={series.key === "total" ? 4 : 3}
-                  />
-                  {series.points.map((point) => (
-                    <circle
-                      key={`${series.key}-${point.value}`}
-                      aria-label={`${point.label} ${series.label} ${formatAttendanceAverageCount(point.count)} 名`}
-                      className={`${seriesClassNames[series.key]} stroke-white`}
-                      cx={point.x}
-                      cy={point.y}
-                      r={series.key === "total" ? 5 : 4}
-                      strokeWidth="2"
-                    />
-                  ))}
-                </g>
-              ))}
-            </svg>
-          </div>
-
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {props.points.map((point) => (
-              <Link
-                key={point.value}
-                className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-                href={point.href}
-              >
-                <span className="font-semibold text-zinc-900">{point.label}</span>
-                <span className="mt-2 block font-semibold tabular-nums text-zinc-950">
-                  {formatAttendanceAverageCount(point.totalCount)} 名
-                </span>
-                <span className="mt-1 block text-xs text-zinc-600">
-                  幼小科 {formatAttendanceAverageCount(point.elementaryCount)} 名 / 中学科{" "}
-                  {formatAttendanceAverageCount(point.juniorHighCount)} 名
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
 export default async function SummaryPage({ searchParams }: SummaryPageProps) {
   const activeSchoolYear = await getActiveSchoolYear();
 
@@ -606,9 +443,9 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
 
         <SummaryTrendChart
           emptyMessage="前の週の集計はまだありません。"
-          heading="前週までの出席推移"
-          points={weeklyTrendPoints}
-          subtitle="入力途中の可能性がある選択中の週を除いた、前週までの週次合計です。"
+          heading="前週までの推移"
+          rows={buildSummaryTrendChartRows(weeklyTrendPoints)}
+          subtitle="選択中の週の一つ前までの週次合計です。"
           unitLabel="週次合計"
         />
       </SummaryShell>
@@ -694,9 +531,9 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
 
       <SummaryTrendChart
         emptyMessage="前の月の集計はまだありません。"
-        heading="前月までの出席推移"
-        points={monthlyTrendPoints}
-        subtitle="入力途中の可能性がある選択中の月を除いた、前月までの月次平均です。"
+        heading="前月までの推移"
+        rows={buildSummaryTrendChartRows(monthlyTrendPoints)}
+        subtitle="選択中の月の一つ前までの月次平均です。"
         unitLabel="月次平均"
       />
 
