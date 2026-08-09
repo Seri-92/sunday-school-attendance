@@ -342,6 +342,7 @@ export function buildWeeklyGroupAttendanceSummaries(params: {
   classes: { gradeCode: GradeCode; id: string; name: string }[];
   date: string;
   guardianCounts: Record<WeeklyAttendanceGroup, number>;
+  juniorHighOtherCount?: number;
   records: AttendanceHistoryRecord[];
   studentsByClassId: Map<string, { studentId: string }[]>;
 }): WeeklyGroupAttendanceSummary[] {
@@ -391,9 +392,13 @@ export function buildWeeklyGroupAttendanceSummaries(params: {
       group: "junior_high",
       label: "中学科",
       guardianCount: params.guardianCounts.junior_high,
-      studentCount: presentStudentIdsByGroup.junior_high.size,
+      studentCount:
+        presentStudentIdsByGroup.junior_high.size +
+        (params.juniorHighOtherCount ?? 0),
       totalCount:
-        presentStudentIdsByGroup.junior_high.size + params.guardianCounts.junior_high,
+        presentStudentIdsByGroup.junior_high.size +
+        (params.juniorHighOtherCount ?? 0) +
+        params.guardianCounts.junior_high,
     },
   ];
 }
@@ -621,6 +626,7 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
   classes: { gradeCode: GradeCode; id: string; name: string }[];
   dates: string[];
   guardianCountsByDate: Map<string, Record<WeeklyAttendanceGroup, number>>;
+  juniorHighOtherCountsByDate?: Map<string, number>;
   records: AttendanceHistoryRecord[];
   studentsByClassId: Map<string, { studentId: string }[]>;
 }): MonthlyGroupAttendanceSummary[] {
@@ -647,12 +653,14 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
     elementary: 0,
     junior_high: 0,
   };
+  let juniorHighOtherCount = 0;
 
   for (const date of params.dates) {
     const counts = params.guardianCountsByDate.get(date);
 
     guardianCounts.elementary += counts?.elementary ?? 0;
     guardianCounts.junior_high += counts?.junior_high ?? 0;
+    juniorHighOtherCount += params.juniorHighOtherCountsByDate?.get(date) ?? 0;
   }
 
   for (const record of params.records) {
@@ -673,7 +681,8 @@ export function buildMonthlyGroupAttendanceSummaries(params: {
   const divisor = weekCount > 0 ? weekCount : 1;
   const elementaryStudentAverageCount = studentCounts.elementary / divisor;
   const elementaryGuardianAverageCount = guardianCounts.elementary / divisor;
-  const juniorHighStudentAverageCount = studentCounts.junior_high / divisor;
+  const juniorHighStudentAverageCount =
+    (studentCounts.junior_high + juniorHighOtherCount) / divisor;
   const juniorHighGuardianAverageCount = guardianCounts.junior_high / divisor;
 
   return [

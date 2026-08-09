@@ -244,6 +244,34 @@ export async function getClassAttendanceExtraCounts(
     );
 }
 
+export async function getJuniorHighOtherCountsForDates(
+  schoolYearId: string,
+  dates: string[],
+) {
+  if (dates.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      date: attendanceDates.date,
+      headcount: attendanceExtraCounts.headcount,
+    })
+    .from(attendanceExtraCounts)
+    .innerJoin(
+      attendanceDates,
+      eq(attendanceExtraCounts.attendanceDateId, attendanceDates.id),
+    )
+    .where(
+      and(
+        eq(attendanceDates.schoolYearId, schoolYearId),
+        inArray(attendanceDates.date, dates),
+        eq(attendanceExtraCounts.category, "junior_high_other"),
+      ),
+    )
+    .orderBy(asc(attendanceDates.date));
+}
+
 export async function getWeeklyAttendanceExtraCounts(
   schoolYearId: string,
   date: string,

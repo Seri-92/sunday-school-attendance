@@ -7,6 +7,7 @@ import {
   getClassAttendanceRecords,
   getClassStudents,
   getDefaultAttendanceDate,
+  getJuniorHighOtherCountsForDates,
   getSundaysInRange,
   getTeacherClassesForYear,
   getWeeklyAttendanceExtraCounts,
@@ -281,6 +282,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const classAttendanceExtraCounts = selectedClass
     ? await getClassAttendanceExtraCounts(selectedClass.id, activeSchoolYear.id, selectedDate)
     : [];
+  const juniorHighOtherCounts = selectedClass
+    ? await getJuniorHighOtherCountsForDates(activeSchoolYear.id, [selectedDate])
+    : [];
   const elementaryWeeklyAttendanceExtraCounts = selectedClass
     ? await getWeeklyAttendanceExtraCounts(
         activeSchoolYear.id,
@@ -343,6 +347,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       elementary: elementaryGuardianCountRecord?.headcount ?? 0,
       junior_high: juniorHighGuardianCountRecord?.headcount ?? 0,
     },
+    juniorHighOtherCount: juniorHighOtherCounts.reduce(
+      (total, count) => total + count.headcount,
+      0,
+    ),
     records,
     studentsByClassId,
   });

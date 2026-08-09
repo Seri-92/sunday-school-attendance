@@ -7,6 +7,7 @@ import {
   getClassAttendanceRecords,
   getClassStudents,
   getDefaultAttendanceDate,
+  getJuniorHighOtherCountsForDates,
   getSundaysInRange,
   getWeeklyAttendanceExtraCountsForDates,
 } from "@/lib/attendance";
@@ -102,6 +103,21 @@ async function getWeeklyGuardianCountsByDate(
     if (counts) {
       counts[row.group] = row.headcount;
     }
+  }
+
+  return countsByDate;
+}
+
+async function getJuniorHighOtherCountsByDate(
+  schoolYearId: string,
+  dates: string[],
+) {
+  const uniqueDates = [...new Set(dates)];
+  const countsByDate = new Map(uniqueDates.map((date) => [date, 0]));
+  const rows = await getJuniorHighOtherCountsForDates(schoolYearId, uniqueDates);
+
+  for (const row of rows) {
+    countsByDate.set(row.date, (countsByDate.get(row.date) ?? 0) + row.headcount);
   }
 
   return countsByDate;
@@ -380,14 +396,16 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
       selectedDate,
       sundays,
     });
-    const guardianCountsByDate = await getWeeklyGuardianCountsByDate(
-      activeSchoolYear.id,
-      [selectedDate, ...previousWeeklyDates],
-    );
+    const summaryDates = [selectedDate, ...previousWeeklyDates];
+    const [guardianCountsByDate, juniorHighOtherCountsByDate] = await Promise.all([
+      getWeeklyGuardianCountsByDate(activeSchoolYear.id, summaryDates),
+      getJuniorHighOtherCountsByDate(activeSchoolYear.id, summaryDates),
+    ]);
     const summaries = buildWeeklyGroupAttendanceSummaries({
       classes,
       date: selectedDate,
       guardianCounts: getGuardianCountsForDate(guardianCountsByDate, selectedDate),
+      juniorHighOtherCount: juniorHighOtherCountsByDate.get(selectedDate),
       records,
       studentsByClassId,
     });
@@ -398,6 +416,7 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
           classes,
           date,
           guardianCounts: getGuardianCountsForDate(guardianCountsByDate, date),
+          juniorHighOtherCount: juniorHighOtherCountsByDate.get(date),
           records,
           studentsByClassId,
         }),
@@ -466,14 +485,16 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
       sundays,
     }),
   );
-  const guardianCountsByDate = await getWeeklyGuardianCountsByDate(
-    activeSchoolYear.id,
-    [...selectedDates, ...previousMonthDates],
-  );
+  const summaryDates = [...selectedDates, ...previousMonthDates];
+  const [guardianCountsByDate, juniorHighOtherCountsByDate] = await Promise.all([
+    getWeeklyGuardianCountsByDate(activeSchoolYear.id, summaryDates),
+    getJuniorHighOtherCountsByDate(activeSchoolYear.id, summaryDates),
+  ]);
   const summaries = buildMonthlyGroupAttendanceSummaries({
     classes,
     dates: selectedDates,
     guardianCountsByDate,
+    juniorHighOtherCountsByDate,
     records,
     studentsByClassId,
   });
@@ -486,6 +507,7 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
         elementary: getGuardianCount(guardianCountsByDate, date, "elementary"),
         junior_high: getGuardianCount(guardianCountsByDate, date, "junior_high"),
       },
+      juniorHighOtherCount: juniorHighOtherCountsByDate.get(date),
       records,
       studentsByClassId,
     }),
@@ -503,6 +525,7 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
           classes,
           dates,
           guardianCountsByDate,
+          juniorHighOtherCountsByDate,
           records,
           studentsByClassId,
         }),

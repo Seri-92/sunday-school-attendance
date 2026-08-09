@@ -252,7 +252,7 @@ test("buildPreviousAttendanceMonths returns months before the selected month in 
   );
 });
 
-test("buildWeeklyGroupAttendanceSummaries totals present students and guardians by weekly group", () => {
+test("buildWeeklyGroupAttendanceSummaries includes junior-high other attendees in student totals", () => {
   const summaries = buildWeeklyGroupAttendanceSummaries({
     classes: [
       {
@@ -276,6 +276,7 @@ test("buildWeeklyGroupAttendanceSummaries totals present students and guardians 
       elementary: 6,
       junior_high: 2,
     },
+    juniorHighOtherCount: 3,
     records: [
       {
         attendanceDate: "2026-04-05",
@@ -346,8 +347,8 @@ test("buildWeeklyGroupAttendanceSummaries totals present students and guardians 
       group: "junior_high",
       guardianCount: 2,
       label: "中学科",
-      studentCount: 1,
-      totalCount: 3,
+      studentCount: 4,
+      totalCount: 6,
     },
   ]);
 });
@@ -545,7 +546,7 @@ test("resolveAttendanceMonth falls back to the current month option", () => {
   );
 });
 
-test("buildMonthlyGroupAttendanceSummaries averages weekly student and guardian attendance within one month", () => {
+test("buildMonthlyGroupAttendanceSummaries averages student totals including junior-high other attendees", () => {
   const summaries = buildMonthlyGroupAttendanceSummaries({
     classes: [
       {
@@ -575,6 +576,10 @@ test("buildMonthlyGroupAttendanceSummaries averages weekly student and guardian 
           junior_high: 2,
         },
       ],
+    ]),
+    juniorHighOtherCountsByDate: new Map([
+      ["2026-05-03", 2],
+      ["2026-05-10", 3],
     ]),
     records: [
       {
@@ -612,8 +617,8 @@ test("buildMonthlyGroupAttendanceSummaries averages weekly student and guardian 
       group: "junior_high",
       guardianAverageCount: 1.5,
       label: "中学科",
-      studentAverageCount: 0,
-      totalAverageCount: 1.5,
+      studentAverageCount: 2.5,
+      totalAverageCount: 4,
       weekCount: 2,
     },
   ]);
