@@ -7,8 +7,10 @@
 1. `.env.example` を参考に `.env.local` を作成し、Neon の接続文字列を `DATABASE_URL` に設定する
 2. Clerk の `publishable key` を `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` に設定する
 3. Clerk の `secret key` を `CLERK_SECRET_KEY` に設定する
-4. migration を生成・適用する
-5. seed を流す
+4. LINE Messaging API のチャネルアクセストークンと、先生グループのIDをそれぞれ `LINE_CHANNEL_ACCESS_TOKEN`、`LINE_ATTENDANCE_GROUP_ID` に設定する
+5. `CRON_SECRET` に16文字以上のランダムな文字列を設定する
+6. migration を生成・適用する
+7. seed を流す
 
 ```bash
 pnpm db:generate
@@ -27,6 +29,14 @@ pnpm dev
 6. ローカル開発は常にその開発用 DB を使う
 
 本番用 DB は別プロジェクト、または別 branch / database として分離してください。
+
+## 出席入力リマインド
+
+Vercel Cron は毎週日曜 21:00（日本時間）に `/api/cron/attendance-reminder` を呼び出します。Vercel Hobby では実行時刻が最大59分程度ずれることがあります。
+
+当日について、各クラスの全生徒の出欠、幼小科・中学科の保護者人数、中学科のその他人数のいずれかが未入力であれば、先生グループへ「出席を入力してください」と送信します。LINE公式アカウントを先生グループに参加させ、Webhookで取得したグループIDを `LINE_ATTENDANCE_GROUP_ID` に設定してください。
+
+本番デプロイ時には、VercelのProduction環境変数にも `CRON_SECRET`、`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_ATTENDANCE_GROUP_ID` を設定してください。`CRON_SECRET` はVercelがCron呼び出し時に自動で付与するBearerトークンの照合に使います。
 
 ## DB 構成
 
