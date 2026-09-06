@@ -7,20 +7,21 @@ import {
   attendanceExtraCounts,
   attendanceRecords,
   classes,
+  schoolYears,
   studentClassAssignments,
   weeklyAttendanceExtraCounts,
 } from "@/db/schema";
-import { getActiveSchoolYear } from "@/lib/attendance";
+import type { AttendanceState } from "@/lib/attendance-notifications";
 import {
   isAttendanceReminderDateInScope,
   isAttendanceReminderRequired,
 } from "@/lib/attendance-reminder";
 
-export async function isAttendanceReminderRequiredForDate(date: string) {
-  const activeSchoolYear = await getActiveSchoolYear();
+export async function getAttendanceStateForDate(date: string, schoolYearId: string): Promise<AttendanceState> {
+  const [activeSchoolYear] = await db.select().from(schoolYears).where(eq(schoolYears.id, schoolYearId)).limit(1);
 
   if (!activeSchoolYear) {
-    return false;
+    return "not_applicable";
   }
 
   if (
@@ -30,7 +31,7 @@ export async function isAttendanceReminderRequiredForDate(date: string) {
       startDate: activeSchoolYear.startDate,
     })
   ) {
-    return false;
+    return "not_applicable";
   }
 
   const [attendanceDate] = await db
@@ -53,15 +54,10 @@ export async function isAttendanceReminderRequiredForDate(date: string) {
     .from(classes)
     .where(eq(classes.schoolYearId, activeSchoolYear.id));
 
+  if (classRecords.length === 0) return "not_applicable";
+
   if (!attendanceDate) {
-    return isAttendanceReminderRequired({
-      attendanceDateId: null,
-      attendanceRecords: [],
-      classExtraCounts: [],
-      classes: classRecords,
-      studentClassAssignments: [],
-      weeklyExtraCounts: [],
-    });
+    return "incomplete";
   }
 
   const [studentAssignments, records, classExtraCounts, weeklyExtraCounts] =
@@ -100,5 +96,5 @@ export async function isAttendanceReminderRequiredForDate(date: string) {
     classes: classRecords,
     studentClassAssignments: studentAssignments,
     weeklyExtraCounts,
-  });
+  }) ? "incomplete" : "complete";
 }

@@ -279,6 +279,23 @@ export const attendanceExtraCounts = pgTable(
   ],
 );
 
+export const attendanceNotificationKindEnum = pgEnum("attendance_notification_kind", ["reminder", "completion"]);
+
+export const attendanceNotifications = pgTable(
+  "attendance_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    schoolYearId: uuid("school_year_id").notNull().references(() => schoolYears.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    kind: attendanceNotificationKindEnum("kind").notNull(),
+    recipient: varchar("recipient", { length: 255 }).notNull(),
+    message: varchar("message", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("attendance_notifications_year_date_kind_key").on(table.schoolYearId, table.date, table.kind)],
+);
+
 export const weeklyAttendanceExtraCounts = pgTable(
   "weekly_attendance_extra_counts",
   {

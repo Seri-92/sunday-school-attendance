@@ -1,4 +1,7 @@
 import Link from "next/link";
+
+// Allow the post-save notification's bounded retries to finish after the response.
+export const maxDuration = 60;
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
   formatAttendanceDateLabel,

@@ -78,6 +78,13 @@
       "when": 1781444203558,
       "tag": "0010_solid_tony_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788685752993,
+      "tag": "0011_loud_bastion",
+      "breakpoints": true
     }
   ]
 }

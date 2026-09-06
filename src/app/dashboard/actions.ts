@@ -38,6 +38,7 @@ import { requireSession } from "@/lib/auth/session";
 import { syncTeacherAuthUser } from "@/lib/auth/teachers";
 import { resolveDefaultClassForGrade } from "@/lib/student-class-assignment";
 import { buildStudentName } from "@/lib/students";
+import { checkAttendanceCompletionAfterSave } from "@/lib/attendance-notification-service";
 
 function buildDashboardUrl(params: {
   tab?: string;
@@ -493,6 +494,7 @@ export async function saveAttendanceAction(formData: FormData) {
     }
   });
 
+  checkAttendanceCompletionAfterSave(activeSchoolYear.id, date);
   revalidatePath("/dashboard");
   redirect(
     buildDashboardUrl({
@@ -593,6 +595,7 @@ export async function saveWeeklyAttendanceExtraAction(
       });
   });
 
+  checkAttendanceCompletionAfterSave(activeSchoolYear.id, date);
   revalidatePath("/dashboard");
   redirect(
     buildDashboardUrl({

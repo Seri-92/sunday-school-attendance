@@ -1,47 +1,46 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { attendanceNotifications } from "@/db/schema";
+import { buildAttendanceMessage, type AttendanceNotificationKind } from "@/lib/attendance-notifications";
+import { deliverLineNotification, sendLineMessage } from "@/lib/line-delivery";
 
-const linePushMessageEndpoint = "https://api.line.me/v2/bot/message/push";
+export async function sendAttendanceNotificationOnce(params: {
+  schoolYearId: string;
+  date: string;
+  kind: AttendanceNotificationKind;
+}) {
+  const recipient = process.env.LINE_ATTENDANCE_GROUP_ID;
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!recipient || !token) throw new Error("LINE notification environment is not configured");
 
-function getRequiredEnv(name: string) {
-  const value = process.env[name];
+  // Persist the key, recipient and exact message BEFORE calling LINE so a process
+  // crash or failed DB commit can retry the same request, never a new one.
+  await db.insert(attendanceNotifications).values({
+    ...params,
+    recipient,
+    message: buildAttendanceMessage(params.date, params.kind),
+  }).onConflictDoNothing();
 
-  if (!value) {
-    throw new Error(`${name} is not set.`);
-  }
+  await db.transaction(async (tx) => {
+    const [row] = await tx.select().from(attendanceNotifications).where(and(
+      eq(attendanceNotifications.schoolYearId, params.schoolYearId),
+      eq(attendanceNotifications.date, params.date),
+      eq(attendanceNotifications.kind, params.kind),
+    )).for("update");
+    if (!row) throw new Error("Notification intent not found");
 
-  return value;
-}
-
-export function createLineRetryKey(seed: string) {
-  const hash = createHash("sha256").update(seed).digest("hex");
-
-  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-${
-    Number.parseInt(hash.slice(16, 17), 16) % 4 + 8
-  }${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
-}
-
-export async function sendAttendanceReminder(date: string) {
-  const response = await fetch(linePushMessageEndpoint, {
-    body: JSON.stringify({
-      messages: [
-        {
-          text: "出席を入力してください",
-          type: "text",
-        },
-      ],
-      to: getRequiredEnv("LINE_ATTENDANCE_GROUP_ID"),
-    }),
-    headers: {
-      Authorization: `Bearer ${getRequiredEnv("LINE_CHANNEL_ACCESS_TOKEN")}`,
-      "Content-Type": "application/json",
-      "X-Line-Retry-Key": createLineRetryKey(`attendance-reminder:${date}`),
-    },
-    method: "POST",
+    // Concurrent saves serialize on this row; the next caller sees sentAt.
+    await deliverLineNotification({
+      to: row.recipient, text: row.message, retryKey: row.id,
+      createdAt: row.createdAt, sentAt: row.sentAt,
+    }, {
+      now: new Date(),
+      send: (message) => sendLineMessage(message, token),
+      markSent: async () => {
+        await tx.update(attendanceNotifications).set({ sentAt: new Date() }).where(eq(attendanceNotifications.id, row.id));
+      },
+    });
   });
-
-  if (!response.ok) {
-    throw new Error(`LINE メッセージの送信に失敗しました（${response.status}）。`);
-  }
 }

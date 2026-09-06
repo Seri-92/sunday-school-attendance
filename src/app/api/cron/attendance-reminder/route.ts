@@ -1,9 +1,9 @@
-import { getIsoDateInJapan } from "@/lib/attendance";
-import { isAttendanceReminderRequiredForDate } from "@/lib/attendance-reminder-service";
+import { getActiveSchoolYear, getIsoDateInJapan } from "@/lib/attendance";
+import { notifyAttendanceForWeek } from "@/lib/attendance-notification-service";
 import { isCronRequestAuthorized } from "@/lib/cron-auth";
-import { sendAttendanceReminder } from "@/lib/line-messaging";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   if (!isCronRequestAuthorized(request.headers.get("authorization"), process.env.CRON_SECRET)) {
@@ -11,13 +11,8 @@ export async function GET(request: Request) {
   }
 
   const date = getIsoDateInJapan();
-  const shouldSendReminder = await isAttendanceReminderRequiredForDate(date);
-
-  if (!shouldSendReminder) {
-    return Response.json({ sent: false });
-  }
-
-  await sendAttendanceReminder(date);
-
-  return Response.json({ sent: true });
+  const schoolYear = await getActiveSchoolYear();
+  if (!schoolYear) return Response.json({ checked: false });
+  await notifyAttendanceForWeek(schoolYear.id, date, "cron");
+  return Response.json({ checked: true });
 }
